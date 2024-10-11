@@ -2,6 +2,9 @@ from pydantic import EmailStr, BaseModel
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
 
+PhoneNumber.phone_format = "E164"
+
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
