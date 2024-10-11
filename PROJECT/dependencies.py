@@ -7,7 +7,18 @@ from PROJECT.models import UserRole, Session, User
 
 
 class JWTAuthSession:
-    async def __call__(self, authorization: str | None = Header(default=None)) -> Session:
+    async def __call__(
+            self,
+            authorization: str | None = Header(default=None),
+            x_token: str | None = Header(
+                default=None, description=(
+                        "Use this as authorization header here. "
+                        "Do not use it in real application! "
+                        "It exists ONLY because openapi is not allowing to use authorization header in web docs."
+                )
+            ),
+    ) -> Session:
+        authorization = authorization or x_token
         if not authorization or (session := await Session.from_jwt(authorization)) is None:
             raise HTTPException(401, "Invalid session.")
 
