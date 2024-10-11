@@ -9,6 +9,8 @@ async def test_register(client: AsyncClient):
     response = await client.post("/auth/register", json={
         "email": f"test{time()}@gmail.com",
         "password": "123456789",
+        "first_name": "first",
+        "last_name": "last",
     })
     assert response.status_code == 200, response.json()
     assert response.json().keys() == {"token"}
@@ -20,12 +22,16 @@ async def test_register_already_registered(client: AsyncClient):
     response = await client.post("/auth/register", json={
         "email": email,
         "password": "123456789",
+        "first_name": "first",
+        "last_name": "last",
     })
     assert response.status_code == 200, response.json()
 
     response = await client.post("/auth/register", json={
         "email": email,
         "password": "123456789",
+        "first_name": "first",
+        "last_name": "last",
     })
     assert response.status_code == 400, response.json()
 
@@ -35,6 +41,8 @@ async def test_register_invalid_email(client: AsyncClient):
     response = await client.post("/auth/register", json={
         "email": f"test{time()}",
         "password": "123456789",
+        "first_name": "first",
+        "last_name": "last",
     })
     assert response.status_code == 422, response.json()
 
@@ -45,6 +53,8 @@ async def test_login(client: AsyncClient):
     response = await client.post("/auth/register", json={
         "email": email,
         "password": "123456789",
+        "first_name": "first",
+        "last_name": "last",
     })
     assert response.status_code == 200, response.json()
 
@@ -61,6 +71,8 @@ async def test_login_wrong_password(client: AsyncClient):
     response = await client.post("/auth/register", json={
         "email": email,
         "password": "123456789",
+        "first_name": "first",
+        "last_name": "last",
     })
     assert response.status_code == 200, response.json()
 

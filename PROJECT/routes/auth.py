@@ -15,7 +15,13 @@ async def register(data: RegisterRequest):
         raise HTTPException(400, "User with this email already registered!")
 
     password = bcrypt.hashpw(data.password.encode("utf8"), bcrypt.gensalt(config.BCRYPT_ROUNDS)).decode("utf8")
-    user = await User.create(email=data.email, password=password)
+    user = await User.create(
+        email=data.email,
+        password=password,
+        first_name=data.first_name,
+        last_name=data.last_name,
+        phone_number=data.phone_number,
+    )
     session = await Session.create(user=user)
 
     return {
