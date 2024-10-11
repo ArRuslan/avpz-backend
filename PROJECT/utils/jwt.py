@@ -7,11 +7,9 @@ from time import time
 
 class JWT:
     @staticmethod
-    def _b64encode(data: str | bytes | dict) -> str:
+    def _b64encode(data: bytes | dict) -> str:
         if isinstance(data, dict):
             data = json.dumps(data, separators=(',', ':')).encode("utf8")
-        elif isinstance(data, str):
-            data = data.encode("utf8")
 
         return urlsafe_b64encode(data).decode("utf8").strip("=")
 
