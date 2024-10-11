@@ -37,3 +37,7 @@ class JWTAuthUser:
 
 
 JwtAuthUserDep = Annotated[User, Depends(JWTAuthUser(UserRole.USER))]
+JwtAuthStaffRoDepN = Depends(JWTAuthUser(UserRole.STAFF_VIEWONLY))
+JwtAuthStaffRoDep = Annotated[User, JwtAuthStaffRoDepN]
+JwtAuthStaffRwDepN = Depends(JWTAuthUser(UserRole.STAFF_MANAGE))
+JwtAuthStaffRwDep = Annotated[User, JwtAuthStaffRwDepN]

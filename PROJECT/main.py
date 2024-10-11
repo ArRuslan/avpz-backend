@@ -8,7 +8,7 @@ from tortoise import Tortoise
 from tortoise.contrib.fastapi import RegisterTortoise
 
 from . import config
-from .routes import auth, user
+from .routes import auth, user, hotels
 
 
 @asynccontextmanager
@@ -47,3 +47,4 @@ app.add_middleware(
 )
 app.include_router(auth.router)
 app.include_router(user.router)
+app.include_router(hotels.router)
