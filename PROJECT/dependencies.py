@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import HTTPException
 from fastapi.params import Header, Depends
 
-from PROJECT.models import UserRole, Session, User
+from PROJECT.models import UserRole, Session, User, Hotel
 
 
 class JWTAuthSession:
@@ -41,3 +41,13 @@ JwtAuthStaffRoDepN = Depends(JWTAuthUser(UserRole.STAFF_VIEWONLY))
 JwtAuthStaffRoDep = Annotated[User, JwtAuthStaffRoDepN]
 JwtAuthStaffRwDepN = Depends(JWTAuthUser(UserRole.STAFF_MANAGE))
 JwtAuthStaffRwDep = Annotated[User, JwtAuthStaffRwDepN]
+
+
+async def hotel_dep(hotel_id: int) -> Hotel:
+    if (hotel := await Hotel.get_or_none(id=hotel_id)) is None:
+        raise HTTPException(404, "Unknown hotel.")
+
+    return hotel
+
+
+HotelDep = Annotated[Hotel, Depends(hotel_dep)]

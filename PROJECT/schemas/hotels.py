@@ -12,3 +12,9 @@ class HotelCreateRequest(BaseModel):
     name: str
     address: str
     description: str | None = None
+
+
+class HotelEditRequest(HotelCreateRequest):
+    name: str | None = None
+    address: str | None = None
+    description: str | None = None
