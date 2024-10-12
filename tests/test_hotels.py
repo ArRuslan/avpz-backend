@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
 
-from PROJECT.models import UserRole, Hotel
+from hhb.models import UserRole, Hotel
 from tests.conftest import create_token
 
 

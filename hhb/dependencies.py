@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import HTTPException
 from fastapi.params import Header, Depends
 
-from PROJECT.models import UserRole, Session, User, Hotel
+from .models import UserRole, Session, User, Hotel
 
 
 class JWTAuthSession:

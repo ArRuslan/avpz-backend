@@ -6,13 +6,13 @@ from bcrypt import gensalt, hashpw
 from fastapi import FastAPI
 from httpx import AsyncClient
 
-from PROJECT import config
+from hhb import config
 
 config.BCRYPT_ROUNDS = 4
 config.DB_CONNECTION_STRING = "sqlite://:memory:"
 
-from PROJECT.main import app
-from PROJECT.models import Session, User, UserRole
+from hhb.main import app
+from hhb.models import Session, User, UserRole
 
 
 PWD_HASH_123456789 = hashpw(b"123456789", gensalt(4)).decode("utf8")

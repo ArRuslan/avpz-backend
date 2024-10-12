@@ -5,7 +5,7 @@ from os import urandom
 
 from tortoise import fields, Model
 
-from PROJECT import models, config
+from hhb import models, config
 from ..utils import JWT
 
 

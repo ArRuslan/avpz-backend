@@ -5,7 +5,7 @@ from enum import IntEnum
 
 from tortoise import fields, Model
 
-from PROJECT import models
+from hhb import models
 
 
 class BookingStatus(IntEnum):

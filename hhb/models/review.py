@@ -4,7 +4,7 @@ from datetime import datetime
 
 from tortoise import fields, Model
 
-from PROJECT import models
+from hhb import models
 
 
 class Review(Model):

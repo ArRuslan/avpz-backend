@@ -18,7 +18,7 @@ async def migrate_and_connect_orm(app_: FastAPI):  # pragma: no cover
 
         command = Command({
             "connections": {"default": config.DB_CONNECTION_STRING},
-            "apps": {"models": {"models": ["PROJECT.models", "aerich.models"], "default_connection": "default"}},
+            "apps": {"models": {"models": ["hhb.models", "aerich.models"], "default_connection": "default"}},
         }, location=migrations_dir)
         await command.init()
         if Path(migrations_dir).exists():
@@ -31,7 +31,7 @@ async def migrate_and_connect_orm(app_: FastAPI):  # pragma: no cover
     async with RegisterTortoise(
             app=app_,
             db_url=config.DB_CONNECTION_STRING,
-            modules={"models": ["PROJECT.models"]},
+            modules={"models": ["hhb.models"]},
             generate_schemas=True,
     ):
         yield

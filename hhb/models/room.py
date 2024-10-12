@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from tortoise import fields, Model
 
-from PROJECT import models
+from hhb import models
 
 
 class Room(Model):

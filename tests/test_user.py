@@ -3,8 +3,8 @@ from time import time
 import pytest
 from httpx import AsyncClient
 
-from PROJECT.models import User, Session
-from PROJECT.utils.mfa import Mfa
+from hhb.models import User, Session
+from hhb.utils.mfa import Mfa
 from tests.conftest import create_token, PWD_HASH_123456789
 
 
