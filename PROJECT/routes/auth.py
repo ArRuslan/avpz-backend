@@ -35,7 +35,7 @@ async def login(data: LoginRequest):
     if (user := await User.get_or_none(email=data.email)) is None:
         raise HTTPException(400, "User with this credentials is not found!")
 
-    if not bcrypt.checkpw(data.password.encode("utf8"), user.password.encode("utf8")):
+    if not user.check_password(data.password):
         raise HTTPException(400, "User with this credentials is not found!")
 
     session = await Session.create(user=user)
