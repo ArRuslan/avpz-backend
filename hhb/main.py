@@ -13,7 +13,7 @@ from .routes import auth, user, hotels
 
 @asynccontextmanager
 async def migrate_and_connect_orm(app_: FastAPI):  # pragma: no cover
-    if config.DB_CONNECTION_STRING != "sqlite://:memory:":
+    if not config.IS_DEBUG:
         migrations_dir = "data/migrations"
 
         command = Command({
@@ -37,7 +37,12 @@ async def migrate_and_connect_orm(app_: FastAPI):  # pragma: no cover
         yield
 
 
-app = FastAPI(lifespan=migrate_and_connect_orm)
+app = FastAPI(
+    lifespan=migrate_and_connect_orm,
+    debug=config.IS_DEBUG,
+    title="HHB" + ("-Debug" if config.IS_DEBUG else ""),
+    openapi_url="/openapi.json" if config.IS_DEBUG else None,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

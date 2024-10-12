@@ -32,7 +32,7 @@ jobs:
         run: |
           poetry run pytest -s --disable-warnings tests/
         env:
-          VAR: 1
+          IS_DEBUG: 1
 
       - name: Print coverage report
         run: |

@@ -22,6 +22,9 @@ async def register(data: RegisterRequest):
         last_name=data.last_name,
         phone_number=data.phone_number,
     )
+    if config.IS_DEBUG:
+        user.role = data.role
+        await user.save(update_fields=["role"])
     session = await Session.create(user=user)
 
     return {

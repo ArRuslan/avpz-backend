@@ -1,6 +1,8 @@
 from pydantic import EmailStr, BaseModel
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
+from hhb import config
+from hhb.models import UserRole
 
 PhoneNumber.phone_format = "E164"
 
@@ -11,6 +13,8 @@ class RegisterRequest(BaseModel):
     first_name: str
     last_name: str
     phone_number: PhoneNumber | None = None
+    if config.IS_DEBUG:
+        role: UserRole = UserRole.USER
 
 
 class LoginRequest(BaseModel):

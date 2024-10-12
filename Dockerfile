@@ -4,7 +4,7 @@ ENV POETRY_HOME=/opt/poetry
 ENV POETRY_CACHE_DIR=/opt/.cache
 ENV PATH="${PATH}:${POETRY_HOME}/bin"
 
-WORKDIR "/ticketer"
+WORKDIR "/hhb"
 
 COPY poetry.lock poetry.lock
 COPY pyproject.toml pyproject.toml
