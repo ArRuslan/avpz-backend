@@ -7,6 +7,7 @@ from tortoise import fields, Model
 
 from hhb import models, config
 from ..utils import JWT
+from ..utils.jwt import JWTPurpose
 
 
 class Session(Model):
@@ -16,11 +17,15 @@ class Session(Model):
     created_at: datetime = fields.DatetimeField(auto_now_add=True)
 
     def to_jwt(self) -> str:
-        return JWT.encode({"u": self.user.id, "s": self.id, "n": self.nonce}, config.JWT_KEY, expires_in=86400)
+        return JWT.encode(
+            {"u": self.user.id, "s": self.id, "n": self.nonce, "p": JWTPurpose.AUTH},
+            config.JWT_KEY,
+            expires_in=86400,
+        )
 
     @classmethod
     async def from_jwt(cls, token: str) -> Session | None:
-        if (payload := JWT.decode(token, config.JWT_KEY)) is None:
+        if (payload := JWT.decode(token, config.JWT_KEY)) is None or payload["p"] != JWTPurpose.AUTH:
             return
 
         return await Session.get_or_none(

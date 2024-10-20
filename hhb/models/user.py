@@ -8,6 +8,7 @@ class UserRole(IntEnum):
     USER = 0
     STAFF_VIEWONLY = 1
     STAFF_MANAGE = 2
+    LOCAL_ADMIN = 100
     ADMIN = 999
 
 

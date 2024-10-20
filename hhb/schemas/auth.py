@@ -28,3 +28,12 @@ class RegisterResponse(BaseModel):
 
 class LoginResponse(RegisterResponse):
     ...
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class RealResetPasswordRequest(BaseModel):
+    reset_token: str
+    new_password: str

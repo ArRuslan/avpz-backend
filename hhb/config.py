@@ -3,10 +3,10 @@ from os import environ, urandom
 
 IS_DEBUG = str(environ.get("IS_DEBUG")).lower() in ("true", "1")
 
-if IS_DEBUG:
+if IS_DEBUG:  # pragma: no cover
     DB_CONNECTION_STRING = environ.get("DB_CONNECTION_STRING", "sqlite://:memory:")
     BCRYPT_ROUNDS = environ.get("BCRYPT_ROUNDS", 6)
-else:
+else:  # pragma: no cover
     DB_CONNECTION_STRING = environ["DB_CONNECTION_STRING"]
     BCRYPT_ROUNDS = environ.get("BCRYPT_ROUNDS", 12)
 

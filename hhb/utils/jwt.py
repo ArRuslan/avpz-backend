@@ -5,6 +5,11 @@ from hashlib import sha512
 from time import time
 
 
+class JWTPurpose:
+    AUTH = 0
+    PASSWORD_RESET = 1
+
+
 class JWT:
     @staticmethod
     def _b64encode(data: bytes | dict) -> str:
