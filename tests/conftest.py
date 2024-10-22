@@ -1,12 +1,10 @@
 from time import time
 
-import pytest
 import pytest_asyncio
 from asgi_lifespan import LifespanManager
 from bcrypt import gensalt, hashpw
 from fastapi import FastAPI
 from httpx import AsyncClient, Request, Response
-from pytest_httpx import HTTPXMock
 
 from hhb import config
 
