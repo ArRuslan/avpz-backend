@@ -11,3 +11,8 @@ else:  # pragma: no cover
     BCRYPT_ROUNDS = environ.get("BCRYPT_ROUNDS", 12)
 
 JWT_KEY = b64decode(environ.get("JWT_KEY", b64encode(urandom(32)).decode("utf8")))
+
+RECAPTCHA_SECRET = environ.get("RECAPTCHA_SECRET")
+if RECAPTCHA_SECRET is None:  # pragma: no cover
+    import warnings
+    warnings.warn("RECAPTCHA_SECRET is not set!")

@@ -3,11 +3,12 @@ from pydantic_extra_types.phone_numbers import PhoneNumber
 
 from hhb import config
 from hhb.models import UserRole
+from hhb.schemas.common import CaptchaExpectedRequest
 
 PhoneNumber.phone_format = "E164"
 
 
-class RegisterRequest(BaseModel):
+class RegisterRequest(CaptchaExpectedRequest):
     email: EmailStr
     password: str
     first_name: str
@@ -17,7 +18,7 @@ class RegisterRequest(BaseModel):
         role: UserRole = UserRole.USER
 
 
-class LoginRequest(BaseModel):
+class LoginRequest(CaptchaExpectedRequest):
     email: EmailStr
     password: str
 
@@ -30,7 +31,7 @@ class LoginResponse(RegisterResponse):
     ...
 
 
-class ResetPasswordRequest(BaseModel):
+class ResetPasswordRequest(CaptchaExpectedRequest):
     email: EmailStr
 
 

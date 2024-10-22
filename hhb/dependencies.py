@@ -1,9 +1,13 @@
+import warnings
 from typing import Annotated
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Body
 from fastapi.params import Header, Depends
+from httpx import AsyncClient
 
+from . import config
 from .models import UserRole, Session, User, Hotel
+from .schemas.common import CaptchaExpectedRequest
 
 
 class JWTAuthSession:
@@ -51,3 +55,22 @@ async def hotel_dep(hotel_id: int) -> Hotel:
 
 
 HotelDep = Annotated[Hotel, Depends(hotel_dep)]
+
+
+async def captcha_dep(data: CaptchaExpectedRequest) -> None:
+    if config.RECAPTCHA_SECRET is None:  # pragma: no cover
+        warnings.warn("RECAPTCHA_SECRET is not set, verification is skipped!")
+        return
+
+    if not data.captcha_key:
+        raise HTTPException(400, "Wrong captcha data.")
+
+    async with AsyncClient() as client:
+        resp = await client.post("https://www.google.com/recaptcha/api/siteverify", data={
+            "secret": config.RECAPTCHA_SECRET, "response": data.captcha_key
+        })
+        if not resp.json()["success"]:
+            raise HTTPException(400, "Wrong captcha data.")
+
+
+CaptchaDep = Depends(captcha_dep)

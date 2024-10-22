@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from starlette.responses import Response
 
 from .. import config
+from ..dependencies import CaptchaDep
 from ..models import User, Session
 from ..schemas.auth import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, ResetPasswordRequest, \
     RealResetPasswordRequest
@@ -12,8 +13,7 @@ from ..utils.jwt import JWTPurpose
 router = APIRouter(prefix="/auth")
 
 
-# TODO: add recaptcha
-@router.post("/register", response_model=RegisterResponse)
+@router.post("/register", response_model=RegisterResponse, dependencies=[CaptchaDep])
 async def register(data: RegisterRequest):
     if await User.filter(email=data.email).exists():
         raise HTTPException(400, "User with this email already registered!")
@@ -36,8 +36,7 @@ async def register(data: RegisterRequest):
     }
 
 
-# TODO: add recaptcha
-@router.post("/login", response_model=LoginResponse)
+@router.post("/login", response_model=LoginResponse, dependencies=[CaptchaDep])
 async def login(data: LoginRequest):
     if (user := await User.get_or_none(email=data.email)) is None:
         raise HTTPException(400, "User with this credentials is not found!")
@@ -51,8 +50,7 @@ async def login(data: LoginRequest):
     }
 
 
-# TODO: add recaptcha
-@router.post("/reset-password/request", status_code=204)
+@router.post("/reset-password/request", status_code=204, dependencies=[CaptchaDep])
 async def request_reset_password(data: ResetPasswordRequest):
     if (user := await User.get_or_none(email=data.email)) is None:
         raise HTTPException(400, "User with this email not found!")
@@ -63,7 +61,6 @@ async def request_reset_password(data: ResetPasswordRequest):
         return Response("", 204, {"x-debug-token": reset_token})
 
 
-# TODO: add recaptcha
 @router.post("/reset-password/reset", status_code=204)
 async def reset_password(data: RealResetPasswordRequest):
     if (payload := JWT.decode(data.reset_token, config.JWT_KEY)) is None or payload["p"] != JWTPurpose.PASSWORD_RESET:

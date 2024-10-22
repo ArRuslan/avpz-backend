@@ -2,10 +2,11 @@ from time import time
 
 import pytest
 from httpx import AsyncClient
+from pytest_httpx import HTTPXMock
 
 from hhb.models import User, Session
 from hhb.utils.mfa import Mfa
-from tests.conftest import create_token, PWD_HASH_123456789
+from tests.conftest import PWD_HASH_123456789, recaptcha_mock_callback
 
 
 @pytest.mark.asyncio
@@ -18,7 +19,8 @@ async def test_get_user_info_invalid_token(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_get_user_info(client: AsyncClient):
+async def test_get_user_info(client: AsyncClient, httpx_mock: HTTPXMock):
+    httpx_mock.add_callback(recaptcha_mock_callback, url="https://www.google.com/recaptcha/api/siteverify")
     email = f"test{time()}@gmail.com"
 
     response = await client.post("/auth/register", json={
@@ -26,6 +28,7 @@ async def test_get_user_info(client: AsyncClient):
         "password": "123456789",
         "first_name": "first",
         "last_name": "last",
+        "captcha_key": "should-pass-test-key",
     })
     assert response.status_code == 200, response.json()
     assert response.json().keys() == {"token"}
@@ -42,7 +45,8 @@ async def test_get_user_info(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_edit_user_info(client: AsyncClient):
+async def test_edit_user_info(client: AsyncClient, httpx_mock: HTTPXMock):
+    httpx_mock.add_callback(recaptcha_mock_callback, url="https://www.google.com/recaptcha/api/siteverify")
     email = f"test{time()}@gmail.com"
 
     response = await client.post("/auth/register", json={
@@ -50,6 +54,7 @@ async def test_edit_user_info(client: AsyncClient):
         "password": "123456789",
         "first_name": "first",
         "last_name": "last",
+        "captcha_key": "should-pass-test-key",
     })
     assert response.status_code == 200, response.json()
     assert response.json().keys() == {"token"}
