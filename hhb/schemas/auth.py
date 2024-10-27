@@ -25,6 +25,7 @@ class LoginRequest(CaptchaExpectedRequest):
 
 class RegisterResponse(BaseModel):
     token: str
+    expires_at: int
 
 
 class LoginResponse(RegisterResponse):

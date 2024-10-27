@@ -8,6 +8,7 @@ from time import time
 class JWTPurpose:
     AUTH = 0
     PASSWORD_RESET = 1
+    AUTH_REFRESH = 2
 
 
 class JWT:

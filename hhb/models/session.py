@@ -16,16 +16,22 @@ class Session(Model):
     nonce: str = fields.CharField(max_length=16, default=lambda: urandom(8).hex())
     created_at: datetime = fields.DatetimeField(auto_now_add=True)
 
-    def to_jwt(self) -> str:
+    def to_jwt(self, refresh: bool = False) -> str:
         return JWT.encode(
-            {"u": self.user.id, "s": self.id, "n": self.nonce, "p": JWTPurpose.AUTH},
+            {
+                "u": self.user.id,
+                "s": self.id,
+                "n": self.nonce,
+                "p": JWTPurpose.AUTH if not refresh else JWTPurpose.AUTH_REFRESH,
+            },
             config.JWT_KEY,
-            expires_in=86400,
+            expires_in=config.AUTH_JWT_TTL if not refresh else config.AUTH_REFRESH_JWT_TTL,
         )
 
     @classmethod
-    async def from_jwt(cls, token: str) -> Session | None:
-        if (payload := JWT.decode(token, config.JWT_KEY)) is None or payload["p"] != JWTPurpose.AUTH:
+    async def from_jwt(cls, token: str, is_refresh: bool = False) -> Session | None:
+        purpose = JWTPurpose.AUTH if not is_refresh else JWTPurpose.AUTH_REFRESH
+        if (payload := JWT.decode(token, config.JWT_KEY)) is None or payload["p"] != purpose:
             return
 
         return await Session.get_or_none(

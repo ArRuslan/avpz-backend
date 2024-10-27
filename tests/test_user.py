@@ -31,7 +31,7 @@ async def test_get_user_info(client: AsyncClient, httpx_mock: HTTPXMock):
         "captcha_key": "should-pass-test-key",
     })
     assert response.status_code == 200, response.json()
-    assert response.json().keys() == {"token"}
+    assert response.json().keys() == {"token", "expires_at"}
     token = response.json()["token"]
 
     response = await client.get("/user/info", headers={"authorization": token})
@@ -57,7 +57,7 @@ async def test_edit_user_info(client: AsyncClient, httpx_mock: HTTPXMock):
         "captcha_key": "should-pass-test-key",
     })
     assert response.status_code == 200, response.json()
-    assert response.json().keys() == {"token"}
+    assert response.json().keys() == {"token", "expires_at"}
     token = response.json()["token"]
 
     response = await client.patch("/user/info", headers={"authorization": token}, json={

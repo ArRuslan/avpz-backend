@@ -1,3 +1,5 @@
+from time import time
+
 import bcrypt
 from fastapi import APIRouter, HTTPException
 from starlette.responses import Response
@@ -32,7 +34,8 @@ async def register(data: RegisterRequest):
     session = await Session.create(user=user)
 
     return {
-        "token": session.to_jwt()
+        "token": session.to_jwt(),
+        "expires_at": int(time() + config.AUTH_JWT_TTL),
     }
 
 
@@ -46,7 +49,8 @@ async def login(data: LoginRequest):
 
     session = await Session.create(user=user)
     return {
-        "token": session.to_jwt()
+        "token": session.to_jwt(),
+        "expires_at": int(time() + config.AUTH_JWT_TTL),
     }
 
 

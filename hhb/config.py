@@ -16,3 +16,13 @@ RECAPTCHA_SECRET = environ.get("RECAPTCHA_SECRET")
 if RECAPTCHA_SECRET is None:  # pragma: no cover
     import warnings
     warnings.warn("RECAPTCHA_SECRET is not set!")
+
+try:
+    AUTH_JWT_TTL = int(environ.get("AUTH_JWT_TTL", 86400))
+except ValueError:  # pragma: no cover
+    AUTH_JWT_TTL = 86400
+
+try:
+    AUTH_REFRESH_JWT_TTL = int(environ.get("AUTH_REFRESH_JWT_TTL", AUTH_JWT_TTL * 7))
+except ValueError:  # pragma: no cover
+    AUTH_REFRESH_JWT_TTL = AUTH_JWT_TTL * 7

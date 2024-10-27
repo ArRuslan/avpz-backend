@@ -25,7 +25,7 @@ async def test_register(client: AsyncClient):
         "captcha_key": "should-pass-test-key",
     })
     assert response.status_code == 200, response.json()
-    assert response.json().keys() == {"token"}
+    assert response.json().keys() == {"token", "expires_at"}
 
 
 @pytest.mark.httpx_mock(can_send_already_matched_responses=True)
