@@ -5,13 +5,18 @@ from aerich import Command
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import PlainTextResponse, JSONResponse
+from starlette.responses import JSONResponse
 from tortoise import Tortoise
 from tortoise.contrib.fastapi import RegisterTortoise
 
 from . import config
 from .routes import auth, user, hotels
 from .utils.multiple_errors_exception import MultipleErrorsException
+
+try:
+    import git
+except ImportError:  # pragma: no cover
+    git = None
 
 
 @asynccontextmanager
@@ -60,6 +65,7 @@ app.include_router(hotels.router)
 
 if config.IS_DEBUG:
     import fastapi.openapi.utils as fu
+    from pathlib import Path
 
     fu.validation_error_response_definition = {
         "title": "HTTPValidationError",
@@ -72,6 +78,11 @@ if config.IS_DEBUG:
             },
         },
     }
+
+    if git is not None:  # pragma: no cover
+        repo = git.Repo(Path(__file__).parent.parent)
+        last_commit = repo.head.commit
+        app.version = f"{last_commit.committed_datetime.strftime('%m.%d.%Y %H:%M:%S')}, {last_commit.hexsha[:8]}"
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(_, exc: RequestValidationError) -> JSONResponse:
