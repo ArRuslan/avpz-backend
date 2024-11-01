@@ -1,7 +1,7 @@
 from time import time
 
 import bcrypt
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from starlette.responses import Response
 
 from .. import config
@@ -11,6 +11,7 @@ from ..schemas.auth import LoginRequest, LoginResponse, RegisterRequest, Registe
     RealResetPasswordRequest
 from ..utils import JWT
 from ..utils.jwt import JWTPurpose
+from ..utils.multiple_errors_exception import MultipleErrorsException
 
 router = APIRouter(prefix="/auth")
 
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/auth")
 @router.post("/register", response_model=RegisterResponse, dependencies=[CaptchaDep])
 async def register(data: RegisterRequest):
     if await User.filter(email=data.email).exists():
-        raise HTTPException(400, "User with this email already registered!")
+        raise MultipleErrorsException("User with this email already registered!")
 
     password = bcrypt.hashpw(data.password.encode("utf8"), bcrypt.gensalt(config.BCRYPT_ROUNDS)).decode("utf8")
     user = await User.create(
@@ -42,10 +43,10 @@ async def register(data: RegisterRequest):
 @router.post("/login", response_model=LoginResponse, dependencies=[CaptchaDep])
 async def login(data: LoginRequest):
     if (user := await User.get_or_none(email=data.email)) is None:
-        raise HTTPException(400, "User with this credentials is not found!")
+        raise MultipleErrorsException("User with this credentials is not found!")
 
     if not user.check_password(data.password):
-        raise HTTPException(400, "User with this credentials is not found!")
+        raise MultipleErrorsException("User with this credentials is not found!")
 
     session = await Session.create(user=user)
     return {
@@ -57,7 +58,7 @@ async def login(data: LoginRequest):
 @router.post("/reset-password/request", status_code=204, dependencies=[CaptchaDep])
 async def request_reset_password(data: ResetPasswordRequest):
     if (user := await User.get_or_none(email=data.email)) is None:
-        raise HTTPException(400, "User with this email not found!")
+        raise MultipleErrorsException("User with this email not found!")
 
     # TODO: send via email
     reset_token = JWT.encode({"u": user.id, "p": JWTPurpose.PASSWORD_RESET}, config.JWT_KEY, expires_in=60 * 30)
@@ -68,9 +69,9 @@ async def request_reset_password(data: ResetPasswordRequest):
 @router.post("/reset-password/reset", status_code=204)
 async def reset_password(data: RealResetPasswordRequest):
     if (payload := JWT.decode(data.reset_token, config.JWT_KEY)) is None or payload["p"] != JWTPurpose.PASSWORD_RESET:
-        raise HTTPException(400, "Password reset request is invalid!!")
+        raise MultipleErrorsException("Password reset request is invalid!!")
     if (user := await User.get_or_none(id=payload["u"])) is None:
-        raise HTTPException(400, "User not found!")
+        raise MultipleErrorsException("User not found!")
 
     user.password = bcrypt.hashpw(data.new_password.encode("utf8"), bcrypt.gensalt(config.BCRYPT_ROUNDS)).decode("utf8")
     await user.save(update_fields=["password"])

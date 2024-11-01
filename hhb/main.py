@@ -3,12 +3,15 @@ from pathlib import Path
 
 from aerich import Command
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import PlainTextResponse, JSONResponse
 from tortoise import Tortoise
 from tortoise.contrib.fastapi import RegisterTortoise
 
 from . import config
 from .routes import auth, user, hotels
+from .utils.multiple_errors_exception import MultipleErrorsException
 
 
 @asynccontextmanager
@@ -53,3 +56,39 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(user.router)
 app.include_router(hotels.router)
+
+
+if config.IS_DEBUG:
+    import fastapi.openapi.utils as fu
+
+    fu.validation_error_response_definition = {
+        "title": "HTTPValidationError",
+        "type": "object",
+        "properties": {
+            "error": {
+                "title": "Error messages",
+                "type": "array",
+                "items": {"type": "string"},
+            },
+        },
+    }
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(_, exc: RequestValidationError) -> JSONResponse:
+    result = []
+    for err in exc.errors():
+        loc = ".".join(err["loc"][1:])
+        if loc:
+            loc = f"[{loc}] "
+        result.append(f"{loc}{err['msg']}")
+
+    return JSONResponse({
+        "errors": result,
+    }, status_code=422)
+
+
+@app.exception_handler(MultipleErrorsException)
+async def multiple_errors_exception_handler(_, exc: MultipleErrorsException) -> JSONResponse:
+    return JSONResponse({
+        "errors": exc.messages,
+    }, status_code=exc.status_code)

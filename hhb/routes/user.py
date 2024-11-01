@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from ..dependencies import JwtAuthUserDep
 from ..schemas.user import UserInfoResponse, UserInfoEditRequest, UserMfaEnableRequest, UserMfaDisableRequest
 from ..utils.mfa import Mfa
+from ..utils.multiple_errors_exception import MultipleErrorsException
 
 router = APIRouter(prefix="/user")
 
@@ -44,11 +45,11 @@ async def edit_user_info(user: JwtAuthUserDep, data: UserInfoEditRequest):
 @router.post("/mfa/enable", response_model=UserInfoResponse)
 async def enable_mfa(user: JwtAuthUserDep, data: UserMfaEnableRequest):
     if user.mfa_key is not None:
-        raise HTTPException(400, "Mfa already enabled.")
+        raise MultipleErrorsException("Mfa already enabled.")
     if data.code not in Mfa.get_codes(data.key):
-        raise HTTPException(400, "Invalid code.")
+        raise MultipleErrorsException("Invalid code.")
     if not user.check_password(data.password):
-        raise HTTPException(400, "Wrong password!")
+        raise MultipleErrorsException("Wrong password!")
 
     user.mfa_key = data.key
     await user.save(update_fields=["mfa_key"])
@@ -67,11 +68,11 @@ async def enable_mfa(user: JwtAuthUserDep, data: UserMfaEnableRequest):
 @router.post("/mfa/disable", response_model=UserInfoResponse)
 async def disable_mfa(user: JwtAuthUserDep, data: UserMfaDisableRequest):
     if user.mfa_key is None:
-        raise HTTPException(400, "Mfa is not enabled.")
+        raise MultipleErrorsException("Mfa is not enabled.")
     if data.code not in Mfa.get_codes(user.mfa_key):
-        raise HTTPException(400, "Invalid code.")
+        raise MultipleErrorsException("Invalid code.")
     if not user.check_password(data.password):
-        raise HTTPException(400, "Wrong password!")
+        raise MultipleErrorsException("Wrong password!")
 
     user.mfa_key = None
     await user.save(update_fields=["mfa_key"])

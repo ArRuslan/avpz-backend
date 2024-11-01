@@ -1,13 +1,13 @@
 import warnings
 from typing import Annotated
 
-from fastapi import HTTPException, Body
 from fastapi.params import Header, Depends
 from httpx import AsyncClient
 
 from . import config
 from .models import UserRole, Session, User, Hotel
 from .schemas.common import CaptchaExpectedRequest
+from .utils.multiple_errors_exception import MultipleErrorsException
 
 
 class JWTAuthSession:
@@ -24,7 +24,7 @@ class JWTAuthSession:
     ) -> Session:
         authorization = authorization or x_token
         if not authorization or (session := await Session.from_jwt(authorization)) is None:
-            raise HTTPException(401, "Invalid session.")
+            raise MultipleErrorsException("Invalid session.", 401)
 
         return session
 
@@ -35,7 +35,7 @@ class JWTAuthUser:
 
     async def __call__(self, session: Session = Depends(JWTAuthSession())) -> User:
         if session.user.role < self._min_role:
-            raise HTTPException(403, "Insufficient privileges.")
+            raise MultipleErrorsException("Insufficient privileges.", 403)
 
         return session.user
 
@@ -49,7 +49,7 @@ JwtAuthStaffRwDep = Annotated[User, JwtAuthStaffRwDepN]
 
 async def hotel_dep(hotel_id: int) -> Hotel:
     if (hotel := await Hotel.get_or_none(id=hotel_id)) is None:
-        raise HTTPException(404, "Unknown hotel.")
+        raise MultipleErrorsException("Unknown hotel.", 404)
 
     return hotel
 
@@ -63,14 +63,14 @@ async def captcha_dep(data: CaptchaExpectedRequest) -> None:
         return
 
     if not data.captcha_key:
-        raise HTTPException(400, "Wrong captcha data.")
+        raise MultipleErrorsException("Wrong captcha data.")
 
     async with AsyncClient() as client:
         resp = await client.post("https://www.google.com/recaptcha/api/siteverify", data={
             "secret": config.RECAPTCHA_SECRET, "response": data.captcha_key
         })
         if not resp.json()["success"]:
-            raise HTTPException(400, "Wrong captcha data.")
+            raise MultipleErrorsException("Wrong captcha data.")
 
 
 CaptchaDep = Depends(captcha_dep)
