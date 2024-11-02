@@ -1,16 +1,18 @@
+from os import urandom
 from time import time
 
 import bcrypt
 from fastapi import APIRouter
-from starlette.responses import Response
+from starlette.responses import Response, JSONResponse
 
 from .. import config
 from ..dependencies import CaptchaDep
 from ..models import User, Session
 from ..schemas.auth import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, ResetPasswordRequest, \
-    RealResetPasswordRequest
+    RealResetPasswordRequest, MfaVerifyRequest
 from ..utils import JWT
 from ..utils.jwt import JWTPurpose
+from ..utils.mfa import Mfa
 from ..utils.multiple_errors_exception import MultipleErrorsException
 
 router = APIRouter(prefix="/auth")
@@ -49,6 +51,38 @@ async def login(data: LoginRequest):
         raise MultipleErrorsException("User with this credentials is not found!")
 
     session = await Session.create(user=user)
+    if user.mfa_key is not None:
+        return JSONResponse({
+            "mfa_token": JWT.encode({
+                "s": session.id,
+                "u": user.id,
+                "n": session.nonce[:4],
+            }, config.JWT_KEY, expires_in=30 * 60, purpose=JWTPurpose.MFA),
+            "expires_at": int(time() + 30 * 60),
+        }, 400)
+
+    return {
+        "token": session.to_jwt(),
+        "expires_at": int(time() + config.AUTH_JWT_TTL),
+    }
+
+
+@router.post("/login/mfa", response_model=LoginResponse)
+async def verify_mfa_login(data: MfaVerifyRequest):
+    if (payload := JWT.decode(data.mfa_token, config.JWT_KEY, JWTPurpose.MFA)) is None:
+        raise MultipleErrorsException("Invalid mfa token!")
+
+    session = await Session.get_or_none(
+        id=payload["s"], user__id=payload["u"], nonce__startswith=payload["n"]
+    ).select_related("user")
+    if session is None:
+        raise MultipleErrorsException("Invalid mfa token!")
+
+    if session.user.mfa_key is not None and data.mfa_code not in Mfa.get_codes(session.user.mfa_key):
+        raise MultipleErrorsException("Invalid code.")
+
+    session.nonce = urandom(8).hex()
+    await session.save(update_fields=["nonce"])
     return {
         "token": session.to_jwt(),
         "expires_at": int(time() + config.AUTH_JWT_TTL),
@@ -61,15 +95,15 @@ async def request_reset_password(data: ResetPasswordRequest):
         raise MultipleErrorsException("User with this email not found!")
 
     # TODO: send via email
-    reset_token = JWT.encode({"u": user.id, "p": JWTPurpose.PASSWORD_RESET}, config.JWT_KEY, expires_in=60 * 30)
+    reset_token = JWT.encode({"u": user.id}, config.JWT_KEY, expires_in=60 * 30, purpose=JWTPurpose.PASSWORD_RESET)
     if config.IS_DEBUG:
         return Response("", 204, {"x-debug-token": reset_token})
 
 
 @router.post("/reset-password/reset", status_code=204)
 async def reset_password(data: RealResetPasswordRequest):
-    if (payload := JWT.decode(data.reset_token, config.JWT_KEY)) is None or payload["p"] != JWTPurpose.PASSWORD_RESET:
-        raise MultipleErrorsException("Password reset request is invalid!!")
+    if (payload := JWT.decode(data.reset_token, config.JWT_KEY, purpose=JWTPurpose.PASSWORD_RESET)) is None:
+        raise MultipleErrorsException("Password reset request is invalid!")
     if (user := await User.get_or_none(id=payload["u"])) is None:
         raise MultipleErrorsException("User not found!")
 

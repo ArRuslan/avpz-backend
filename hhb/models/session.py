@@ -22,16 +22,16 @@ class Session(Model):
                 "u": self.user.id,
                 "s": self.id,
                 "n": self.nonce,
-                "p": JWTPurpose.AUTH if not refresh else JWTPurpose.AUTH_REFRESH,
             },
             config.JWT_KEY,
             expires_in=config.AUTH_JWT_TTL if not refresh else config.AUTH_REFRESH_JWT_TTL,
+            purpose=JWTPurpose.AUTH if not refresh else JWTPurpose.AUTH_REFRESH,
         )
 
     @classmethod
     async def from_jwt(cls, token: str, is_refresh: bool = False) -> Session | None:
         purpose = JWTPurpose.AUTH if not is_refresh else JWTPurpose.AUTH_REFRESH
-        if (payload := JWT.decode(token, config.JWT_KEY)) is None or payload["p"] != purpose:
+        if (payload := JWT.decode(token, config.JWT_KEY, purpose)) is None:
             return
 
         return await Session.get_or_none(

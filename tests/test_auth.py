@@ -6,7 +6,8 @@ from httpx import AsyncClient
 from pytest_httpx import HTTPXMock
 
 from hhb.models import User
-from tests.conftest import recaptcha_mock_callback
+from hhb.utils.mfa import Mfa
+from tests.conftest import recaptcha_mock_callback, PWD_HASH_123456789
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -212,3 +213,112 @@ async def test_reset_password_no_user(client: AsyncClient):
         "new_password": "987654321",
     })
     assert response.status_code == 400, response.json()
+
+
+@pytest.mark.asyncio
+async def test_login_mfa(client: AsyncClient):
+    mfa_key = "A" * 16
+    user = await User.create(
+        email=f"test{time()}@gmail.com", password=PWD_HASH_123456789,
+        first_name="first", last_name="last", mfa_key=mfa_key,
+    )
+
+    response = await client.post("/auth/login", json={
+        "email": user.email,
+        "password": "123456789",
+        "captcha_key": "should-pass-test-key",
+    })
+    assert response.status_code == 400, response.json()
+    resp = response.json()
+    assert "mfa_token" in resp
+
+    response = await client.post("/auth/login/mfa", json={
+        "mfa_code": Mfa.get_code(mfa_key),
+        "mfa_token": resp["mfa_token"],
+    })
+    assert response.status_code == 200, response.json()
+    assert response.json().keys() == {"token", "expires_at"}
+
+
+@pytest.mark.asyncio
+async def test_login_mfa_verify_twice_error(client: AsyncClient):
+    mfa_key = "A" * 16
+    user = await User.create(
+        email=f"test{time()}@gmail.com", password=PWD_HASH_123456789,
+        first_name="first", last_name="last", mfa_key=mfa_key,
+    )
+
+    response = await client.post("/auth/login", json={
+        "email": user.email,
+        "password": "123456789",
+        "captcha_key": "should-pass-test-key",
+    })
+    assert response.status_code == 400, response.json()
+    resp = response.json()
+    assert "mfa_token" in resp
+
+    response = await client.post("/auth/login/mfa", json={
+        "mfa_code": Mfa.get_code(mfa_key),
+        "mfa_token": resp["mfa_token"],
+    })
+    assert response.status_code == 200, response.json()
+    assert response.json().keys() == {"token", "expires_at"}
+
+    response = await client.post("/auth/login/mfa", json={
+        "mfa_code": Mfa.get_code(mfa_key),
+        "mfa_token": resp["mfa_token"],
+    })
+    assert response.status_code == 400, response.json()
+
+
+@pytest.mark.asyncio
+async def test_login_mfa_wrong_code(client: AsyncClient):
+    mfa_key = "A" * 16
+    user = await User.create(
+        email=f"test{time()}@gmail.com", password=PWD_HASH_123456789,
+        first_name="first", last_name="last", mfa_key=mfa_key,
+    )
+
+    response = await client.post("/auth/login", json={
+        "email": user.email,
+        "password": "123456789",
+        "captcha_key": "should-pass-test-key",
+    })
+    assert response.status_code == 400, response.json()
+    resp = response.json()
+    assert "mfa_token" in resp
+
+    response = await client.post("/auth/login/mfa", json={
+        "mfa_code": str((int(Mfa.get_code(mfa_key)) + 1) % 1000000).zfill(6),
+        "mfa_token": resp["mfa_token"],
+    })
+    assert response.status_code == 400, response.json()
+
+
+@pytest.mark.asyncio
+async def test_login_mfa_disabled_before_verification(client: AsyncClient):
+    mfa_key = "A" * 16
+    user = await User.create(
+        email=f"test{time()}@gmail.com", password=PWD_HASH_123456789,
+        first_name="first", last_name="last", mfa_key=mfa_key,
+    )
+
+    response = await client.post("/auth/login", json={
+        "email": user.email,
+        "password": "123456789",
+        "captcha_key": "should-pass-test-key",
+    })
+    assert response.status_code == 400, response.json()
+    resp = response.json()
+    assert "mfa_token" in resp
+
+    user.mfa_key = None
+    await user.save(update_fields=["mfa_key"])
+
+    response = await client.post("/auth/login/mfa", json={
+        "mfa_code": str((int(Mfa.get_code(mfa_key)) + 1) % 1000000).zfill(6),
+        "mfa_token": resp["mfa_token"],
+    })
+    assert response.status_code == 200, response.json()
+    assert response.json().keys() == {"token", "expires_at"}
+

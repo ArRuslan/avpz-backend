@@ -1,4 +1,4 @@
-from pydantic import EmailStr, BaseModel
+from pydantic import EmailStr, BaseModel, Field
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
 from hhb import config
@@ -30,6 +30,16 @@ class RegisterResponse(BaseModel):
 
 class LoginResponse(RegisterResponse):
     ...
+
+
+class MfaRequiredResponse(BaseModel):
+    mfa_token: str
+    expires_at: int
+
+
+class MfaVerifyRequest(BaseModel):
+    mfa_code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+    mfa_token: str
 
 
 class ResetPasswordRequest(CaptchaExpectedRequest):

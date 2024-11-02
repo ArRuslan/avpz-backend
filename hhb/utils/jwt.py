@@ -9,6 +9,12 @@ class JWTPurpose:
     AUTH = 0
     PASSWORD_RESET = 1
     AUTH_REFRESH = 2
+    MFA = 3
+
+
+def assert_(value: ..., exc_cls: type[Exception] = ValueError):
+    if not value:
+        raise exc_cls
 
 
 class JWT:
@@ -30,15 +36,16 @@ class JWT:
         return urlsafe_b64decode(data)
 
     @staticmethod
-    def decode(token: str, secret: str | bytes) -> dict | None:
+    def decode(token: str, secret: str | bytes, purpose: int | None = None) -> dict | None:
         try:
             header, payload, signature = token.split(".")
             header_dict = json.loads(JWT._b64decode(header).decode("utf8"))
-            assert header_dict.get("alg") == "HS512"
-            assert header_dict.get("typ") == "JWT"
-            assert (exp := header_dict.get("exp", 0)) > time() or exp == 0
+            assert_(header_dict.get("alg") == "HS512")
+            assert_(header_dict.get("typ") == "JWT")
+            assert_((exp := header_dict.get("exp", 0)) > time() or exp == 0)
+            assert_(purpose is None or header_dict.get("pur") == purpose)
             signature = JWT._b64decode(signature)
-        except (IndexError, AssertionError, ValueError):
+        except (IndexError, ValueError):
             return
 
         sig = f"{header}.{payload}".encode("utf8")
@@ -48,7 +55,10 @@ class JWT:
             return json.loads(payload)
 
     @staticmethod
-    def encode(payload: dict, secret: str | bytes, expire_timestamp: int | float = 0, expires_in: int = None) -> str:
+    def encode(
+            payload: dict, secret: str | bytes, expire_timestamp: int | float = 0, expires_in: int = None,
+            purpose: int | None = None,
+    ) -> str:
         if expire_timestamp == 0 and expires_in is not None:
             expire_timestamp = int(time() + expires_in)
 
@@ -57,6 +67,8 @@ class JWT:
             "typ": "JWT",
             "exp": int(expire_timestamp)
         }
+        if purpose is not None:
+            header["pur"] = purpose
         header = JWT._b64encode(header)
         payload = JWT._b64encode(payload)
 
