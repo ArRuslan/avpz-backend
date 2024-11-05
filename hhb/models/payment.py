@@ -9,7 +9,7 @@ from hhb import models
 
 class Payment(Model):
     id: int = fields.BigIntField(pk=True)
-    booking: models.Booking = fields.ForeignKeyField("models.Booking")
+    booking: models.Booking = fields.ForeignKeyField("models.Booking", unique=True)
     payment_date: datetime = fields.DatetimeField(auto_now_add=True)
     payment_method: str = fields.CharField(max_length=64)
 

@@ -8,3 +8,11 @@ class Hotel(Model):
     name: str = fields.CharField(max_length=255)
     address: str = fields.TextField()
     description: str = fields.TextField(null=True, default=None)
+
+    def to_json(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "address": self.address,
+            "description": self.description,
+        }

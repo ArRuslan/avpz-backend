@@ -6,10 +6,10 @@ from tortoise import fields, Model
 
 class UserRole(IntEnum):
     USER = 0
-    STAFF_VIEWONLY = 1
-    STAFF_MANAGE = 2
-    LOCAL_ADMIN = 100
-    ADMIN = 999
+    BOOKING_ADMIN = 1
+    ROOM_ADMIN = 2
+    HOTEL_ADMIN = 100
+    GLOBAL_ADMIN = 999
 
 
 class User(Model):
@@ -24,3 +24,14 @@ class User(Model):
 
     def check_password(self, password: str) -> bool:
         return bcrypt.checkpw(password.encode("utf8"), self.password.encode("utf8"))
+
+    def to_json(self) -> dict:
+        return {
+            "id": self.id,
+            "email": self.email,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "phone_number": self.phone_number,
+            "role": self.role,
+            "mfa_enabled": self.mfa_key is not None,
+        }

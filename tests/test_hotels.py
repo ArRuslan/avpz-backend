@@ -18,7 +18,7 @@ async def test_create_hotel_insufficient_privileges(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_hotel(client: AsyncClient):
-    token = await create_token(UserRole.STAFF_MANAGE)
+    token = await create_token(UserRole.GLOBAL_ADMIN)
 
     response = await client.get("/hotels", headers={"authorization": token})
     assert response.status_code == 200, response.json()
@@ -42,7 +42,7 @@ async def test_create_hotel(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_hotel(client: AsyncClient):
-    token = await create_token(UserRole.STAFF_MANAGE)
+    token = await create_token(UserRole.ROOM_ADMIN)
     hotel = await Hotel.create(name="test", address="test address")
 
     response = await client.get(f"/hotels/{hotel.id}", headers={"authorization": token})
@@ -58,7 +58,7 @@ async def test_get_hotel(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_edit_hotel(client: AsyncClient):
-    token = await create_token(UserRole.STAFF_MANAGE)
+    token = await create_token(UserRole.GLOBAL_ADMIN)
     hotel = await Hotel.create(name="test", address="test address")
 
     response = await client.patch(f"/hotels/{hotel.id}", headers={"authorization": token}, json={

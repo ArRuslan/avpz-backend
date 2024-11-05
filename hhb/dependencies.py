@@ -15,11 +15,12 @@ class JWTAuthSession:
             self,
             authorization: str | None = Header(default=None),
             x_token: str | None = Header(
-                default=None, description=(
+                default=None,
+                description=(
                         "Use this as authorization header here. "
                         "Do not use it in real application! "
                         "It exists ONLY because openapi is not allowing to use authorization header in web docs."
-                )
+                ),
             ),
     ) -> Session:
         authorization = authorization or x_token
@@ -41,10 +42,14 @@ class JWTAuthUser:
 
 
 JwtAuthUserDep = Annotated[User, Depends(JWTAuthUser(UserRole.USER))]
-JwtAuthStaffRoDepN = Depends(JWTAuthUser(UserRole.STAFF_VIEWONLY))
-JwtAuthStaffRoDep = Annotated[User, JwtAuthStaffRoDepN]
-JwtAuthStaffRwDepN = Depends(JWTAuthUser(UserRole.STAFF_MANAGE))
-JwtAuthStaffRwDep = Annotated[User, JwtAuthStaffRwDepN]
+JwtAuthBookingDepN = Depends(JWTAuthUser(UserRole.BOOKING_ADMIN))
+JwtAuthBookingDep = Annotated[User, JwtAuthBookingDepN]
+JwtAuthRoomsDepN = Depends(JWTAuthUser(UserRole.ROOM_ADMIN))
+JwtAuthRoomsDep = Annotated[User, JwtAuthRoomsDepN]
+JwtAuthHotelDepN = Depends(JWTAuthUser(UserRole.HOTEL_ADMIN))
+JwtAuthHotelDep = Annotated[User, JwtAuthHotelDepN]
+JwtAuthGlobalDepN = Depends(JWTAuthUser(UserRole.GLOBAL_ADMIN))
+JwtAuthGlobalDep = Annotated[User, JwtAuthGlobalDepN]
 
 
 async def hotel_dep(hotel_id: int) -> Hotel:
