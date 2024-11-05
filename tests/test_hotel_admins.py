@@ -296,3 +296,67 @@ async def test_hotel_edit_nonexistent_user(client: AsyncClient):
         }
     )
     assert response.status_code == 404, response.json()
+
+
+@pytest.mark.asyncio
+async def test_hotel_delete_admin(client: AsyncClient):
+    token = await create_token(UserRole.GLOBAL_ADMIN)
+    target_user = await create_user(UserRole.HOTEL_ADMIN)
+    hotel = await Hotel.create(name="test", address="test address")
+    hotel_admin = await HotelAdmin.create(hotel=hotel, user=target_user)
+
+    response = await client.delete(f"/hotels/admin/{hotel.id}/admins/{target_user.id}", headers={"authorization": token})
+    assert response.status_code == 204, response.json()
+    await target_user.refresh_from_db(fields=["role"])
+    assert target_user.role == UserRole.USER
+    assert await HotelAdmin.get_or_none(id=hotel_admin.id) is None
+
+
+@pytest.mark.asyncio
+async def test_hotel_delete_admin_with_same_role(client: AsyncClient):
+    user = await create_user(UserRole.HOTEL_ADMIN)
+    token = (await Session.create(user=user)).to_jwt()
+    target_user = await create_user(UserRole.HOTEL_ADMIN)
+    hotel = await Hotel.create(name="test", address="test address")
+    await HotelAdmin.create(hotel=hotel, user=user)
+    await HotelAdmin.create(hotel=hotel, user=target_user)
+
+    response = await client.delete(f"/hotels/admin/{hotel.id}/admins/{target_user.id}", headers={"authorization": token})
+    assert response.status_code == 400, response.json()
+
+
+@pytest.mark.asyncio
+async def test_hotel_delete_admin_from_different_hotel(client: AsyncClient):
+    user = await create_user(UserRole.HOTEL_ADMIN)
+    token = (await Session.create(user=user)).to_jwt()
+    target_user = await create_user(UserRole.HOTEL_ADMIN)
+    hotel = await Hotel.create(name="test", address="test address")
+    hotel2 = await Hotel.create(name="test", address="test address")
+    await HotelAdmin.create(hotel=hotel, user=user)
+    await HotelAdmin.create(hotel=hotel2, user=target_user)
+
+    response = await client.delete(f"/hotels/admin/{hotel.id}/admins/{target_user.id}", headers={"authorization": token})
+    assert response.status_code == 400, response.json()
+
+
+@pytest.mark.asyncio
+async def test_hotel_delete_admin_in_different_hotel(client: AsyncClient):
+    user = await create_user(UserRole.HOTEL_ADMIN)
+    token = (await Session.create(user=user)).to_jwt()
+    target_user = await create_user(UserRole.HOTEL_ADMIN)
+    hotel = await Hotel.create(name="test", address="test address")
+    hotel2 = await Hotel.create(name="test", address="test address")
+    await HotelAdmin.create(hotel=hotel, user=user)
+    await HotelAdmin.create(hotel=hotel2, user=target_user)
+
+    response = await client.delete(f"/hotels/admin/{hotel2.id}/admins/{target_user.id}", headers={"authorization": token})
+    assert response.status_code == 403, response.json()
+
+
+@pytest.mark.asyncio
+async def test_hotel_delete_admin_nonexistent_user(client: AsyncClient):
+    token = await create_token(UserRole.GLOBAL_ADMIN)
+    hotel = await Hotel.create(name="test", address="test address")
+
+    response = await client.delete(f"/hotels/admin/{hotel.id}/admins/123123123", headers={"authorization": token})
+    assert response.status_code == 404, response.json()

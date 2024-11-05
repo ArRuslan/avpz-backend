@@ -128,6 +128,33 @@ async def edit_hotel_admin(admin_id: int, hotel: HotelDep, user: JwtAuthHotelDep
     return target_admin.to_json()
 
 
+# TODO: not sure about that route path (/admin prefix), maybe move it somewhere?
+@router.delete("/admin/{hotel_id}/admins/{admin_id}", status_code=204)
+async def delete_hotel_admin(admin_id: int, hotel: HotelDep, user: JwtAuthHotelDep):
+    """
+    # !!! WARNING !!!
+    # Path of this endpoint (/hotels/admin/.../admins/...) is going to change to something else (probably /admin/hotels/.../admins/...).
+    # Use with caution!
+    # !!! WARNING !!!
+    """
+
+    # TODO: move this check to dependency
+    if user.role != UserRole.GLOBAL_ADMIN and not await HotelAdmin.filter(hotel=hotel, user=user).exists():
+        raise MultipleErrorsException("You dont have permissions to manage this hotel.", 403)
+
+    if (target_admin := await User.get_or_none(id=admin_id)) is None:
+        raise MultipleErrorsException("User does not exists!", 404)
+    if (hotel_admin := await HotelAdmin.get_or_none(hotel=hotel, user__id=admin_id)) is None:
+        raise MultipleErrorsException("User is not managing this hotel!")
+    if target_admin.role >= user.role:
+        raise MultipleErrorsException("You cannot edit admins with role equals or higher than yours.")
+
+    target_admin.role = UserRole.USER
+    await target_admin.save(update_fields=["role"])
+    await hotel_admin.delete()
+
+
+
 @router.post("", response_model=HotelResponse, dependencies=[JwtAuthGlobalDepN])
 async def create_hotel(data: HotelCreateRequest):
     hotel = await Hotel.create(**data.model_dump())
