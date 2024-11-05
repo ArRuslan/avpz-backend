@@ -65,6 +65,8 @@ app.include_router(hotels.router)
 if config.IS_DEBUG:
     import fastapi.openapi.utils as fu
     from pathlib import Path
+    from datetime import datetime
+    from pytz import UTC
 
     fu.validation_error_response_definition = {
         "title": "HTTPValidationError",
@@ -78,10 +80,14 @@ if config.IS_DEBUG:
         },
     }
 
+    time_fmt = "%m.%d.%Y %H:%M:%S"
+    app.description = f"# Started at {datetime.now(UTC).strftime(time_fmt)} UTC"
+
     if git is not None:  # pragma: no cover
         repo = git.Repo(Path(__file__).parent.parent)
         last_commit = repo.head.commit
-        app.version = f"{last_commit.committed_datetime.strftime('%m.%d.%Y %H:%M:%S')}, {last_commit.hexsha[:8]}"
+        last_commit_time = last_commit.committed_datetime.astimezone(UTC)
+        app.description += f"\n# Git commit: {last_commit.hexsha[:8]}, {last_commit_time.strftime(time_fmt)}"
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(_, exc: RequestValidationError) -> JSONResponse:

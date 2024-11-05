@@ -27,6 +27,13 @@ async def get_hotel(hotel: HotelDep):
 # TODO: not sure about that route path, maybe move it to /{hotel_id} with optional check for admin status?
 @router.get("/admin/{hotel_id}", response_model=HotelResponseForAdmins)
 async def get_hotel_for_admins(hotel: HotelDep, user: JwtAuthHotelDep):
+    """
+    # !!! WARNING !!!
+    # Path of this endpoint (/hotels/admin/...) is going to change to something else (probably /admin/hotels/...).
+    # Use with caution!
+    # !!! WARNING !!!
+    """
+
     # TODO: move this check to dependency
     if user.role != UserRole.GLOBAL_ADMIN and not await HotelAdmin.filter(hotel=hotel, user=user).exists():
         raise MultipleErrorsException("You dont have permissions to manage this hotel.", 403)
@@ -43,6 +50,13 @@ async def get_hotel_for_admins(hotel: HotelDep, user: JwtAuthHotelDep):
 # TODO: not sure about that route path (/admin prefix), maybe move it somewhere?
 @router.get("/admin/{hotel_id}/admins", response_model=list[UserInfoResponse])
 async def get_hotel_admins(hotel: HotelDep, user: JwtAuthHotelDep):
+    """
+    # !!! WARNING !!!
+    # Path of this endpoint (/hotels/admin/.../admins) is going to change to something else (probably /admin/hotels/.../admins).
+    # Use with caution!
+    # !!! WARNING !!!
+    """
+
     # TODO: move this check to dependency
     if user.role != UserRole.GLOBAL_ADMIN and not await HotelAdmin.filter(hotel=hotel, user=user).exists():
         raise MultipleErrorsException("You dont have permissions to manage this hotel.", 403)
@@ -56,6 +70,13 @@ async def get_hotel_admins(hotel: HotelDep, user: JwtAuthHotelDep):
 # TODO: not sure about that route path (/admin prefix), maybe move it somewhere?
 @router.post("/admin/{hotel_id}/admins", response_model=UserInfoResponse)
 async def add_hotel_admin(hotel: HotelDep, user: JwtAuthHotelDep, data: HotelAddAdminRequest):
+    """
+    # !!! WARNING !!!
+    # Path of this endpoint (/hotels/admin/.../admins) is going to change to something else (probably /admin/hotels/.../admins).
+    # Use with caution!
+    # !!! WARNING !!!
+    """
+
     if data.role >= user.role:
         raise MultipleErrorsException("You cannot add admins with role equals or higher than yours.")
     # TODO: move this check to dependency
@@ -81,6 +102,13 @@ async def add_hotel_admin(hotel: HotelDep, user: JwtAuthHotelDep, data: HotelAdd
 # TODO: not sure about that route path (/admin prefix), maybe move it somewhere?
 @router.patch("/admin/{hotel_id}/admins/{admin_id}", response_model=UserInfoResponse)
 async def edit_hotel_admin(admin_id: int, hotel: HotelDep, user: JwtAuthHotelDep, data: HotelEditAdminRequest):
+    """
+    # !!! WARNING !!!
+    # Path of this endpoint (/hotels/admin/.../admins/...) is going to change to something else (probably /admin/hotels/.../admins/...).
+    # Use with caution!
+    # !!! WARNING !!!
+    """
+
     if data.role >= user.role:
         raise MultipleErrorsException("You cannot edit admins with role equals or higher than yours.")
     # TODO: move this check to dependency
