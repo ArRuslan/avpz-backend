@@ -295,6 +295,16 @@ async def test_login_mfa_wrong_code(client: AsyncClient):
     assert response.status_code == 400, response.json()
 
 
+@pytest.mark.httpx_mock(assert_all_responses_were_requested=False)
+@pytest.mark.asyncio
+async def test_login_mfa_invalid_token(client: AsyncClient):
+    response = await client.post("/auth/login/mfa", json={
+        "mfa_code": "111111",
+        "mfa_token": "asd.qwe.123",
+    })
+    assert response.status_code == 400, response.json()
+
+
 @pytest.mark.asyncio
 async def test_login_mfa_disabled_before_verification(client: AsyncClient):
     mfa_key = "A" * 16
