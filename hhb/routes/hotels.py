@@ -1,8 +1,5 @@
 from fastapi import APIRouter
 
-from ..dependencies import JwtAuthStaffRoDepN, JwtAuthStaffRwDepN, HotelDep
-from ..models import Hotel
-from ..schemas.hotels import HotelResponse, HotelCreateRequest, HotelEditRequest
 from ..dependencies import HotelDep, JwtAuthGlobalDepN, JwtAuthHotelDep
 from ..models import Hotel, UserRole, User, HotelAdmin
 from ..schemas.hotels import HotelResponse, HotelCreateRequest, HotelEditRequest, HotelResponseForAdmins, \
@@ -32,7 +29,7 @@ async def get_hotel(hotel: HotelDep):
 async def get_hotel_for_admins(hotel: HotelDep, user: JwtAuthHotelDep):
     # TODO: move this check to dependency
     if user.role != UserRole.GLOBAL_ADMIN and not await HotelAdmin.filter(hotel=hotel, user=user).exists():
-        raise MultipleErrorsException("You dont have permissions to manage this hotel.")
+        raise MultipleErrorsException("You dont have permissions to manage this hotel.", 403)
 
     response = hotel.to_json()
     response["admins"] = [
@@ -40,7 +37,6 @@ async def get_hotel_for_admins(hotel: HotelDep, user: JwtAuthHotelDep):
         for hotel_admin in await HotelAdmin.filter(hotel=hotel, user__role__lt=user.role).select_related("user")
     ]
 
-@router.post("", response_model=HotelResponse, dependencies=[JwtAuthStaffRwDepN])
     return response
 
 
@@ -49,12 +45,39 @@ async def get_hotel_for_admins(hotel: HotelDep, user: JwtAuthHotelDep):
 async def get_hotel_admins(hotel: HotelDep, user: JwtAuthHotelDep):
     # TODO: move this check to dependency
     if user.role != UserRole.GLOBAL_ADMIN and not await HotelAdmin.filter(hotel=hotel, user=user).exists():
-        raise MultipleErrorsException("You dont have permissions to manage this hotel.")
+        raise MultipleErrorsException("You dont have permissions to manage this hotel.", 403)
 
     return [
         hotel_admin.user.to_json()
         for hotel_admin in await HotelAdmin.filter(hotel=hotel, user__role__lt=user.role).select_related("user")
     ]
+
+
+# TODO: not sure about that route path (/admin prefix), maybe move it somewhere?
+@router.post("/admin/{hotel_id}/admins", response_model=UserInfoResponse)
+async def add_hotel_admin(hotel: HotelDep, user: JwtAuthHotelDep, data: HotelAddAdminRequest):
+    if data.role >= user.role:
+        raise MultipleErrorsException("You cannot add admins with role equals or higher than yours.")
+    # TODO: move this check to dependency
+    if user.role != UserRole.GLOBAL_ADMIN and not await HotelAdmin.filter(hotel=hotel, user=user).exists():
+        raise MultipleErrorsException("You dont have permissions to manage this hotel.", 403)
+
+    if (new_admin := await User.get_or_none(id=data.user_id)) is None:
+        raise MultipleErrorsException("User does not exists!", 404)
+
+    if await HotelAdmin.filter(hotel=hotel, user__id=data.user_id).exists():
+        return new_admin.to_json()
+
+    if await HotelAdmin.filter(user=new_admin).exists():
+        raise MultipleErrorsException("User is already managing another hotel!")
+
+    new_admin.role = data.role
+    await new_admin.save(update_fields=["role"])
+    await HotelAdmin.create(hotel=hotel, user=new_admin)
+
+    return new_admin.to_json()
+
+
 @router.post("", response_model=HotelResponse, dependencies=[JwtAuthGlobalDepN])
 async def create_hotel(data: HotelCreateRequest):
     hotel = await Hotel.create(**data.model_dump())
