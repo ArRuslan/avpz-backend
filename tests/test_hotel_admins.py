@@ -170,3 +170,129 @@ async def test_hotel_add_admin_to_different_hotel(client: AsyncClient):
         "role": UserRole.BOOKING_ADMIN,
     })
     assert response.status_code == 403, response.json()
+
+
+@pytest.mark.asyncio
+async def test_hotel_edit_admin(client: AsyncClient):
+    token = await create_token(UserRole.GLOBAL_ADMIN)
+    target_user = await create_user(UserRole.HOTEL_ADMIN)
+    hotel = await Hotel.create(name="test", address="test address")
+    await HotelAdmin.create(hotel=hotel, user=target_user)
+
+    response = await client.patch(
+        f"/hotels/admin/{hotel.id}/admins/{target_user.id}",
+        headers={"authorization": token},
+        json={
+            "role": UserRole.ROOM_ADMIN,
+        }
+    )
+    assert response.status_code == 200, response.json()
+    await target_user.refresh_from_db(fields=["role"])
+    assert target_user.role == UserRole.ROOM_ADMIN
+    assert response.json() == target_user.to_json()
+
+    response = await client.patch(
+        f"/hotels/admin/{hotel.id}/admins/{target_user.id}",
+        headers={"authorization": token},
+        json={
+            "role": UserRole.BOOKING_ADMIN,
+        }
+    )
+    assert response.status_code == 200, response.json()
+    await target_user.refresh_from_db(fields=["role"])
+    assert target_user.role == UserRole.BOOKING_ADMIN
+    assert response.json() == target_user.to_json()
+
+
+@pytest.mark.asyncio
+async def test_hotel_edit_admin_set_same_role(client: AsyncClient):
+    user = await create_user(UserRole.HOTEL_ADMIN)
+    token = (await Session.create(user=user)).to_jwt()
+    target_user = await create_user(UserRole.HOTEL_ADMIN)
+    hotel = await Hotel.create(name="test", address="test address")
+    await HotelAdmin.create(hotel=hotel, user=user)
+
+    response = await client.patch(
+        f"/hotels/admin/{hotel.id}/admins/{target_user.id}",
+        headers={"authorization": token},
+        json={
+            "role": UserRole.HOTEL_ADMIN,
+        }
+    )
+    assert response.status_code == 400, response.json()
+
+
+@pytest.mark.asyncio
+async def test_hotel_edit_admin_with_same_role(client: AsyncClient):
+    user = await create_user(UserRole.HOTEL_ADMIN)
+    token = (await Session.create(user=user)).to_jwt()
+    target_user = await create_user(UserRole.HOTEL_ADMIN)
+    hotel = await Hotel.create(name="test", address="test address")
+    await HotelAdmin.create(hotel=hotel, user=user)
+    await HotelAdmin.create(hotel=hotel, user=target_user)
+
+    response = await client.patch(
+        f"/hotels/admin/{hotel.id}/admins/{target_user.id}",
+        headers={"authorization": token},
+        json={
+            "role": UserRole.BOOKING_ADMIN,
+        }
+    )
+    assert response.status_code == 400, response.json()
+
+
+@pytest.mark.asyncio
+async def test_hotel_edit_admin_in_different_hotel(client: AsyncClient):
+    user = await create_user(UserRole.HOTEL_ADMIN)
+    token = (await Session.create(user=user)).to_jwt()
+    target_user = await create_user(UserRole.HOTEL_ADMIN)
+    hotel = await Hotel.create(name="test", address="test address")
+    hotel2 = await Hotel.create(name="test", address="test address")
+    await HotelAdmin.create(hotel=hotel, user=user)
+    await HotelAdmin.create(hotel=hotel2, user=target_user)
+
+    response = await client.patch(
+        f"/hotels/admin/{hotel2.id}/admins/{target_user.id}",
+        headers={"authorization": token},
+        json={
+            "role": UserRole.BOOKING_ADMIN,
+        }
+    )
+    assert response.status_code == 403, response.json()
+
+
+@pytest.mark.asyncio
+async def test_hotel_edit_admin_from_different_hotel(client: AsyncClient):
+    user = await create_user(UserRole.HOTEL_ADMIN)
+    token = (await Session.create(user=user)).to_jwt()
+    target_user = await create_user(UserRole.ROOM_ADMIN)
+    hotel = await Hotel.create(name="test", address="test address")
+    hotel2 = await Hotel.create(name="test", address="test address")
+    await HotelAdmin.create(hotel=hotel, user=user)
+    await HotelAdmin.create(hotel=hotel2, user=target_user)
+
+    response = await client.patch(
+        f"/hotels/admin/{hotel.id}/admins/{target_user.id}",
+        headers={"authorization": token},
+        json={
+            "role": UserRole.BOOKING_ADMIN,
+        }
+    )
+    assert response.status_code == 400, response.json()
+
+
+@pytest.mark.asyncio
+async def test_hotel_edit_nonexistent_user(client: AsyncClient):
+    user = await create_user(UserRole.HOTEL_ADMIN)
+    token = (await Session.create(user=user)).to_jwt()
+    hotel = await Hotel.create(name="test", address="test address")
+    await HotelAdmin.create(hotel=hotel, user=user)
+
+    response = await client.patch(
+        f"/hotels/admin/{hotel.id}/admins/123123123",
+        headers={"authorization": token},
+        json={
+            "role": UserRole.BOOKING_ADMIN,
+        }
+    )
+    assert response.status_code == 404, response.json()

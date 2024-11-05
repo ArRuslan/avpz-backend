@@ -78,6 +78,28 @@ async def add_hotel_admin(hotel: HotelDep, user: JwtAuthHotelDep, data: HotelAdd
     return new_admin.to_json()
 
 
+# TODO: not sure about that route path (/admin prefix), maybe move it somewhere?
+@router.patch("/admin/{hotel_id}/admins/{admin_id}", response_model=UserInfoResponse)
+async def edit_hotel_admin(admin_id: int, hotel: HotelDep, user: JwtAuthHotelDep, data: HotelEditAdminRequest):
+    if data.role >= user.role:
+        raise MultipleErrorsException("You cannot edit admins with role equals or higher than yours.")
+    # TODO: move this check to dependency
+    if user.role != UserRole.GLOBAL_ADMIN and not await HotelAdmin.filter(hotel=hotel, user=user).exists():
+        raise MultipleErrorsException("You dont have permissions to manage this hotel.", 403)
+
+    if (target_admin := await User.get_or_none(id=admin_id)) is None:
+        raise MultipleErrorsException("User does not exists!", 404)
+    if not await HotelAdmin.filter(hotel=hotel, user__id=admin_id).exists():
+        raise MultipleErrorsException("User is not managing this hotel!")
+    if target_admin.role >= user.role:
+        raise MultipleErrorsException("You cannot edit admins with role equals or higher than yours.")
+
+    target_admin.role = data.role
+    await target_admin.save(update_fields=["role"])
+
+    return target_admin.to_json()
+
+
 @router.post("", response_model=HotelResponse, dependencies=[JwtAuthGlobalDepN])
 async def create_hotel(data: HotelCreateRequest):
     hotel = await Hotel.create(**data.model_dump())

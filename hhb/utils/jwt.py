@@ -12,7 +12,7 @@ class JWTPurpose:
     MFA = 3
 
 
-def assert_(value: ..., exc_cls: type[Exception] = ValueError):
+def assert_(value: ..., exc_cls: type[Exception] = ValueError):  # pragma: no cover
     if not value:
         raise exc_cls
 
