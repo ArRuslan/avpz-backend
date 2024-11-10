@@ -80,7 +80,7 @@ if config.IS_DEBUG:
         },
     }
 
-    time_fmt = "%m.%d.%Y %H:%M:%S"
+    time_fmt = "%d.%m.%Y %H:%M:%S"
     app.description = f"# Started at {datetime.now(UTC).strftime(time_fmt)} UTC"
 
     if git is not None:  # pragma: no cover
