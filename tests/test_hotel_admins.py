@@ -10,7 +10,7 @@ async def test_hotel_get_for_admins(client: AsyncClient):
     token = await create_token(UserRole.GLOBAL_ADMIN)
     hotel = await Hotel.create(name="test", address="test address")
 
-    response = await client.get(f"/hotels/admin/{hotel.id}", headers={"authorization": token})
+    response = await client.get(f"/admin/hotels/{hotel.id}", headers={"authorization": token})
     assert response.status_code == 200, response.json()
     assert response.json() == hotel.to_json() | {"admins": []}
 
@@ -20,7 +20,7 @@ async def test_hotel_get_admins(client: AsyncClient):
     token = await create_token(UserRole.GLOBAL_ADMIN)
     hotel = await Hotel.create(name="test", address="test address")
 
-    response = await client.get(f"/hotels/admin/{hotel.id}/admins", headers={"authorization": token})
+    response = await client.get(f"/admin/hotels/{hotel.id}/admins", headers={"authorization": token})
     assert response.status_code == 200, response.json()
     assert response.json() == []
 
@@ -30,7 +30,7 @@ async def test_hotel_get_for_admins_no_permissions(client: AsyncClient):
     token = await create_token(UserRole.HOTEL_ADMIN)
     hotel = await Hotel.create(name="test", address="test address")
 
-    response = await client.get(f"/hotels/admin/{hotel.id}", headers={"authorization": token})
+    response = await client.get(f"/admin/hotels/{hotel.id}", headers={"authorization": token})
     assert response.status_code == 403, response.json()
 
 
@@ -39,7 +39,7 @@ async def test_hotel_get_admins_no_permissions(client: AsyncClient):
     token = await create_token(UserRole.HOTEL_ADMIN)
     hotel = await Hotel.create(name="test", address="test address")
 
-    response = await client.get(f"/hotels/admin/{hotel.id}/admins", headers={"authorization": token})
+    response = await client.get(f"/admin/hotels/{hotel.id}/admins", headers={"authorization": token})
     assert response.status_code == 403, response.json()
 
 
@@ -49,7 +49,7 @@ async def test_hotel_add_admin_global_hotel(client: AsyncClient):
     target_user = await create_user(UserRole.USER)
     hotel = await Hotel.create(name="test", address="test address")
 
-    response = await client.post(f"/hotels/admin/{hotel.id}/admins", headers={"authorization": token}, json={
+    response = await client.post(f"/admin/hotels/{hotel.id}/admins", headers={"authorization": token}, json={
         "user_id": target_user.id,
         "role": UserRole.HOTEL_ADMIN,
     })
@@ -63,7 +63,7 @@ async def test_hotel_add_admin_nonexistent_user(client: AsyncClient):
     token = await create_token(UserRole.GLOBAL_ADMIN)
     hotel = await Hotel.create(name="test", address="test address")
 
-    response = await client.post(f"/hotels/admin/{hotel.id}/admins", headers={"authorization": token}, json={
+    response = await client.post(f"/admin/hotels/{hotel.id}/admins", headers={"authorization": token}, json={
         "user_id": 123123123,
         "role": UserRole.HOTEL_ADMIN,
     })
@@ -78,7 +78,7 @@ async def test_hotel_add_admin_hotel_booking(client: AsyncClient):
     hotel = await Hotel.create(name="test", address="test address")
     await HotelAdmin.create(hotel=hotel, user=user)
 
-    response = await client.post(f"/hotels/admin/{hotel.id}/admins", headers={"authorization": token}, json={
+    response = await client.post(f"/admin/hotels/{hotel.id}/admins", headers={"authorization": token}, json={
         "user_id": target_user.id,
         "role": UserRole.BOOKING_ADMIN,
     })
@@ -94,7 +94,7 @@ async def test_hotel_add_admin_same_role(client: AsyncClient):
     hotel = await Hotel.create(name="test", address="test address")
     await HotelAdmin.create(hotel=hotel, user=user)
 
-    response = await client.post(f"/hotels/admin/{hotel.id}/admins", headers={"authorization": token}, json={
+    response = await client.post(f"/admin/hotels/{hotel.id}/admins", headers={"authorization": token}, json={
         "user_id": user.id,
         "role": UserRole.HOTEL_ADMIN,
     })
@@ -108,7 +108,7 @@ async def test_hotel_add_global_admin(client: AsyncClient):
     hotel = await Hotel.create(name="test", address="test address")
     await HotelAdmin.create(hotel=hotel, user=user)
 
-    response = await client.post(f"/hotels/admin/{hotel.id}/admins", headers={"authorization": token}, json={
+    response = await client.post(f"/admin/hotels/{hotel.id}/admins", headers={"authorization": token}, json={
         "user_id": user.id,
         "role": UserRole.GLOBAL_ADMIN,
     })
@@ -121,7 +121,7 @@ async def test_hotel_add_admin_existing(client: AsyncClient):
     target_user = await create_user(UserRole.USER)
     hotel = await Hotel.create(name="test", address="test address")
 
-    response = await client.post(f"/hotels/admin/{hotel.id}/admins", headers={"authorization": token}, json={
+    response = await client.post(f"/admin/hotels/{hotel.id}/admins", headers={"authorization": token}, json={
         "user_id": target_user.id,
         "role": UserRole.HOTEL_ADMIN,
     })
@@ -129,7 +129,7 @@ async def test_hotel_add_admin_existing(client: AsyncClient):
     await target_user.refresh_from_db(fields=["role"])
     assert response.json() == target_user.to_json()
 
-    response = await client.post(f"/hotels/admin/{hotel.id}/admins", headers={"authorization": token}, json={
+    response = await client.post(f"/admin/hotels/{hotel.id}/admins", headers={"authorization": token}, json={
         "user_id": target_user.id,
         "role": UserRole.HOTEL_ADMIN,
     })
@@ -144,13 +144,13 @@ async def test_hotel_add_admin_to_multiple_hotels(client: AsyncClient):
     hotel = await Hotel.create(name="test", address="test address")
     hotel2 = await Hotel.create(name="test2", address="test address")
 
-    response = await client.post(f"/hotels/admin/{hotel.id}/admins", headers={"authorization": token}, json={
+    response = await client.post(f"/admin/hotels/{hotel.id}/admins", headers={"authorization": token}, json={
         "user_id": target_user.id,
         "role": UserRole.HOTEL_ADMIN,
     })
     assert response.status_code == 200, response.json()
 
-    response = await client.post(f"/hotels/admin/{hotel2.id}/admins", headers={"authorization": token}, json={
+    response = await client.post(f"/admin/hotels/{hotel2.id}/admins", headers={"authorization": token}, json={
         "user_id": target_user.id,
         "role": UserRole.HOTEL_ADMIN,
     })
@@ -165,7 +165,7 @@ async def test_hotel_add_admin_to_different_hotel(client: AsyncClient):
     hotel2 = await Hotel.create(name="test2", address="test address")
     await HotelAdmin.create(hotel=hotel, user=user)
 
-    response = await client.post(f"/hotels/admin/{hotel2.id}/admins", headers={"authorization": token}, json={
+    response = await client.post(f"/admin/hotels/{hotel2.id}/admins", headers={"authorization": token}, json={
         "user_id": 123123123,
         "role": UserRole.BOOKING_ADMIN,
     })
@@ -180,7 +180,7 @@ async def test_hotel_edit_admin(client: AsyncClient):
     await HotelAdmin.create(hotel=hotel, user=target_user)
 
     response = await client.patch(
-        f"/hotels/admin/{hotel.id}/admins/{target_user.id}",
+        f"/admin/hotels/{hotel.id}/admins/{target_user.id}",
         headers={"authorization": token},
         json={
             "role": UserRole.ROOM_ADMIN,
@@ -192,7 +192,7 @@ async def test_hotel_edit_admin(client: AsyncClient):
     assert response.json() == target_user.to_json()
 
     response = await client.patch(
-        f"/hotels/admin/{hotel.id}/admins/{target_user.id}",
+        f"/admin/hotels/{hotel.id}/admins/{target_user.id}",
         headers={"authorization": token},
         json={
             "role": UserRole.BOOKING_ADMIN,
@@ -213,7 +213,7 @@ async def test_hotel_edit_admin_set_same_role(client: AsyncClient):
     await HotelAdmin.create(hotel=hotel, user=user)
 
     response = await client.patch(
-        f"/hotels/admin/{hotel.id}/admins/{target_user.id}",
+        f"/admin/hotels/{hotel.id}/admins/{target_user.id}",
         headers={"authorization": token},
         json={
             "role": UserRole.HOTEL_ADMIN,
@@ -232,7 +232,7 @@ async def test_hotel_edit_admin_with_same_role(client: AsyncClient):
     await HotelAdmin.create(hotel=hotel, user=target_user)
 
     response = await client.patch(
-        f"/hotels/admin/{hotel.id}/admins/{target_user.id}",
+        f"/admin/hotels/{hotel.id}/admins/{target_user.id}",
         headers={"authorization": token},
         json={
             "role": UserRole.BOOKING_ADMIN,
@@ -252,7 +252,7 @@ async def test_hotel_edit_admin_in_different_hotel(client: AsyncClient):
     await HotelAdmin.create(hotel=hotel2, user=target_user)
 
     response = await client.patch(
-        f"/hotels/admin/{hotel2.id}/admins/{target_user.id}",
+        f"/admin/hotels/{hotel2.id}/admins/{target_user.id}",
         headers={"authorization": token},
         json={
             "role": UserRole.BOOKING_ADMIN,
@@ -272,7 +272,7 @@ async def test_hotel_edit_admin_from_different_hotel(client: AsyncClient):
     await HotelAdmin.create(hotel=hotel2, user=target_user)
 
     response = await client.patch(
-        f"/hotels/admin/{hotel.id}/admins/{target_user.id}",
+        f"/admin/hotels/{hotel.id}/admins/{target_user.id}",
         headers={"authorization": token},
         json={
             "role": UserRole.BOOKING_ADMIN,
@@ -289,7 +289,7 @@ async def test_hotel_edit_nonexistent_user(client: AsyncClient):
     await HotelAdmin.create(hotel=hotel, user=user)
 
     response = await client.patch(
-        f"/hotels/admin/{hotel.id}/admins/123123123",
+        f"/admin/hotels/{hotel.id}/admins/123123123",
         headers={"authorization": token},
         json={
             "role": UserRole.BOOKING_ADMIN,
@@ -305,7 +305,7 @@ async def test_hotel_delete_admin(client: AsyncClient):
     hotel = await Hotel.create(name="test", address="test address")
     hotel_admin = await HotelAdmin.create(hotel=hotel, user=target_user)
 
-    response = await client.delete(f"/hotels/admin/{hotel.id}/admins/{target_user.id}", headers={"authorization": token})
+    response = await client.delete(f"/admin/hotels/{hotel.id}/admins/{target_user.id}", headers={"authorization": token})
     assert response.status_code == 204, response.json()
     await target_user.refresh_from_db(fields=["role"])
     assert target_user.role == UserRole.USER
@@ -321,7 +321,7 @@ async def test_hotel_delete_admin_with_same_role(client: AsyncClient):
     await HotelAdmin.create(hotel=hotel, user=user)
     await HotelAdmin.create(hotel=hotel, user=target_user)
 
-    response = await client.delete(f"/hotels/admin/{hotel.id}/admins/{target_user.id}", headers={"authorization": token})
+    response = await client.delete(f"/admin/hotels/{hotel.id}/admins/{target_user.id}", headers={"authorization": token})
     assert response.status_code == 400, response.json()
 
 
@@ -335,7 +335,7 @@ async def test_hotel_delete_admin_from_different_hotel(client: AsyncClient):
     await HotelAdmin.create(hotel=hotel, user=user)
     await HotelAdmin.create(hotel=hotel2, user=target_user)
 
-    response = await client.delete(f"/hotels/admin/{hotel.id}/admins/{target_user.id}", headers={"authorization": token})
+    response = await client.delete(f"/admin/hotels/{hotel.id}/admins/{target_user.id}", headers={"authorization": token})
     assert response.status_code == 400, response.json()
 
 
@@ -349,7 +349,7 @@ async def test_hotel_delete_admin_in_different_hotel(client: AsyncClient):
     await HotelAdmin.create(hotel=hotel, user=user)
     await HotelAdmin.create(hotel=hotel2, user=target_user)
 
-    response = await client.delete(f"/hotels/admin/{hotel2.id}/admins/{target_user.id}", headers={"authorization": token})
+    response = await client.delete(f"/admin/hotels/{hotel2.id}/admins/{target_user.id}", headers={"authorization": token})
     assert response.status_code == 403, response.json()
 
 
@@ -358,5 +358,5 @@ async def test_hotel_delete_admin_nonexistent_user(client: AsyncClient):
     token = await create_token(UserRole.GLOBAL_ADMIN)
     hotel = await Hotel.create(name="test", address="test address")
 
-    response = await client.delete(f"/hotels/admin/{hotel.id}/admins/123123123", headers={"authorization": token})
+    response = await client.delete(f"/admin/hotels/{hotel.id}/admins/123123123", headers={"authorization": token})
     assert response.status_code == 404, response.json()

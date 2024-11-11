@@ -9,7 +9,7 @@ from tortoise import Tortoise
 from tortoise.contrib.fastapi import RegisterTortoise
 
 from . import config
-from .routes import auth, user, hotels
+from .routes import auth, user, hotels, admin
 from .utils.multiple_errors_exception import MultipleErrorsException
 
 try:
@@ -60,6 +60,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(user.router)
 app.include_router(hotels.router)
+app.include_router(admin.router)
 
 
 if config.IS_DEBUG:

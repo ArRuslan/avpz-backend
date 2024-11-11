@@ -9,7 +9,7 @@ from tests.conftest import create_token
 async def test_create_hotel_insufficient_privileges(client: AsyncClient):
     token = await create_token(UserRole.USER)
 
-    response = await client.post("/hotels", headers={"authorization": token}, json={
+    response = await client.post("/admin/hotels", headers={"authorization": token}, json={
         "name": "test",
         "address": "test address",
     })
@@ -24,7 +24,7 @@ async def test_create_hotel(client: AsyncClient):
     assert response.status_code == 200, response.json()
     assert len(response.json()) == 0
 
-    response = await client.post("/hotels", headers={"authorization": token}, json={
+    response = await client.post("/admin/hotels", headers={"authorization": token}, json={
         "name": "test",
         "address": "test address",
     })
@@ -61,7 +61,7 @@ async def test_edit_hotel(client: AsyncClient):
     token = await create_token(UserRole.GLOBAL_ADMIN)
     hotel = await Hotel.create(name="test", address="test address")
 
-    response = await client.patch(f"/hotels/{hotel.id}", headers={"authorization": token}, json={
+    response = await client.patch(f"/admin/hotels/{hotel.id}", headers={"authorization": token}, json={
         "description": "desc",
         "name": "test123",
     })
