@@ -5,7 +5,7 @@ from fastapi.params import Header, Depends
 from httpx import AsyncClient
 
 from . import config
-from .models import UserRole, Session, User, Hotel
+from .models import UserRole, Session, User, Hotel, Room
 from .schemas.common import CaptchaExpectedRequest
 from .utils.multiple_errors_exception import MultipleErrorsException
 
@@ -60,6 +60,16 @@ async def hotel_dep(hotel_id: int) -> Hotel:
 
 
 HotelDep = Annotated[Hotel, Depends(hotel_dep)]
+
+
+async def room_dep(room_id: int) -> Room:
+    if (room := await Room.get_or_none(id=room_id).select_related("hotel")) is None:
+        raise MultipleErrorsException("Unknown room.", 404)
+
+    return room
+
+
+RoomDep = Annotated[Room, Depends(room_dep)]
 
 
 async def captcha_dep(data: CaptchaExpectedRequest) -> None:

@@ -1,9 +1,10 @@
 from fastapi import APIRouter
 
-from hhb.dependencies import HotelDep, JwtAuthGlobalDepN, JwtAuthHotelDep
-from hhb.models import Hotel, UserRole, User, HotelAdmin
+from hhb.dependencies import HotelDep, JwtAuthGlobalDepN, JwtAuthHotelDep, JwtAuthRoomsDep
+from hhb.models import Hotel, UserRole, User, HotelAdmin, Room
 from hhb.schemas.hotels import HotelResponse, HotelCreateRequest, HotelEditRequest, HotelResponseForAdmins, \
     HotelAddAdminRequest, HotelEditAdminRequest
+from hhb.schemas.rooms import RoomResponse, RoomCreateRequest
 from hhb.schemas.user import UserInfoResponse
 from hhb.utils.multiple_errors_exception import MultipleErrorsException
 
@@ -116,3 +117,25 @@ async def edit_hotel(hotel: HotelDep, data: HotelEditRequest):
         await hotel.save(update_fields=list(update_fields.keys()))
 
     return hotel.to_json()
+
+
+@router.get("/{hotel_id}/rooms", response_model=list[RoomResponse])
+async def get_hotel_rooms(hotel: HotelDep, user: JwtAuthRoomsDep):
+    # TODO: move this check to dependency
+    if user.role != UserRole.GLOBAL_ADMIN and not await HotelAdmin.filter(hotel=hotel, user=user).exists():
+        raise MultipleErrorsException("You dont have permissions to manage rooms in this hotel.", 403)
+
+    return [
+        await room.to_json()
+        for room in await Room.filter(hotel=hotel).select_related("hotel")
+    ]
+
+
+@router.post("/{hotel_id}/rooms", response_model=RoomResponse)
+async def create_hotel_room(hotel: HotelDep, user: JwtAuthRoomsDep, data: RoomCreateRequest):
+    # TODO: move this check to dependency
+    if user.role != UserRole.GLOBAL_ADMIN and not await HotelAdmin.filter(hotel=hotel, user=user).exists():
+        raise MultipleErrorsException("You dont have permissions to manage rooms in this hotel.", 403)
+
+    room = await Room.create(hotel=hotel, **data.model_dump())
+    return await room.to_json()
