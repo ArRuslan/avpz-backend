@@ -56,6 +56,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=(["x-debug-token"] if config.IS_DEBUG else [])
 )
 app.include_router(auth.router)
 app.include_router(user.router)
