@@ -173,7 +173,8 @@ async def test_reset_password_no_email(client: AsyncClient):
         "email": "doesnotexistindb@gmail.com",
         "captcha_key": "should-pass-test-key",
     })
-    assert response.status_code == 400, response.json()
+    assert response.status_code == 204, response.json()
+    assert response.headers.get("x-debug-status", None) == "email_not_found"
 
 
 @pytest.mark.httpx_mock(assert_all_responses_were_requested=False)

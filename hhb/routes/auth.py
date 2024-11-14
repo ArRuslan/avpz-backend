@@ -1,6 +1,8 @@
+from email.message import EmailMessage
 from os import urandom
 from time import time
 
+import aiosmtplib
 import bcrypt
 from fastapi import APIRouter
 from starlette.responses import Response, JSONResponse
@@ -92,12 +94,25 @@ async def verify_mfa_login(data: MfaVerifyRequest):
 @router.post("/reset-password/request", status_code=204, dependencies=[CaptchaDep])
 async def request_reset_password(data: ResetPasswordRequest):
     if (user := await User.get_or_none(email=data.email)) is None:
-        raise MultipleErrorsException("User with this email not found!")
+        return Response("", 204, {"x-debug-status": "email_not_found"})
 
-    # TODO: send via email
     reset_token = JWT.encode({"u": user.id}, config.JWT_KEY, expires_in=60 * 30, purpose=JWTPurpose.PASSWORD_RESET)
+
+    debug_status = "not_configured"
+    if config.SMTP_PORT > 0:  # pragma: no cover
+        message = EmailMessage()
+        message["From"] = "hhb@example.com"
+        message["To"] = user.email
+        message["Subject"] = "Password reset"
+        message.set_content(
+            f"Click the following link to reset your password: "
+            f"{config.PUBLIC_HOST}/reset-password?reset_token={reset_token}"
+        )
+        await aiosmtplib.send(message, hostname=config.SMTP_HOST, port=config.SMTP_PORT, timeout=5)
+        debug_status = "email_sent"
+
     if config.IS_DEBUG:
-        return Response("", 204, {"x-debug-token": reset_token})
+        return Response("", 204, {"x-debug-token": reset_token, "x-debug-status": debug_status})
 
 
 @router.post("/reset-password/reset", status_code=204)
