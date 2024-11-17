@@ -10,6 +10,7 @@ from tortoise.contrib.fastapi import RegisterTortoise
 
 from . import config
 from .routes import auth, user, hotels, admin
+from .utils.create_test_data import create_test_data
 from .utils.multiple_errors_exception import MultipleErrorsException
 
 try:
@@ -41,6 +42,8 @@ async def migrate_and_connect_orm(app_: FastAPI):  # pragma: no cover
             modules={"models": ["hhb.models"]},
             generate_schemas=True,
     ):
+        if config.IS_DEBUG:
+            await create_test_data()
         yield
 
 
