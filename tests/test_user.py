@@ -136,10 +136,17 @@ async def test_user_enable_mfa_errors(client: AsyncClient):
 
     response = await client.post("/user/mfa/enable", headers={"authorization": token}, json={
         "password": "123456789",
-        "key": mfa_key+"B",
+        "key": mfa_key + "B",
         "code": "000000",
     })
     assert response.status_code == 422, response.json()  # Invalid key
+
+    response = await client.post("/user/mfa/enable", headers={"authorization": token}, json={
+        "password": "123456789",
+        "key": "1" * 16,
+        "code": "000000",
+    })
+    assert response.status_code == 422, response.json()  # Invalid key (not base32)
 
     response = await client.post("/user/mfa/enable", headers={"authorization": token}, json={
         "password": "wrong_password",

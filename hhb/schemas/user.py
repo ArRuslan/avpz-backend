@@ -23,7 +23,7 @@ class UserInfoEditRequest(BaseModel):
 
 class UserMfaEnableRequest(BaseModel):
     password: str
-    key: str = Field(min_length=16, max_length=16, pattern=r'^[A-Z0-9]{16}$')
+    key: str = Field(min_length=16, max_length=16, pattern=r'^[A-Z2-7]{16}$')
     code: str = Field(min_length=6, max_length=6, pattern=r'^\d{6}$')
 
 
