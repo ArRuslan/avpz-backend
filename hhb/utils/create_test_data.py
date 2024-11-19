@@ -1,4 +1,5 @@
 import itertools
+import sys
 
 import bcrypt
 
@@ -10,7 +11,10 @@ BULK_COUNT = 64
 ROLES = (UserRole.USER, UserRole.BOOKING_ADMIN, UserRole.ROOM_ADMIN, UserRole.HOTEL_ADMIN, UserRole.GLOBAL_ADMIN)
 MFA_KEY = (None, "A" * 16)
 
-async def create_test_data():
+async def create_test_data():  # pragma: no cover
+    if "pytest" in sys.modules:
+        return
+
     for role, mfa_key in itertools.product(ROLES, MFA_KEY):
         phone_digit = "0"
         email_name = f"test_user.{role.name.lower()}"

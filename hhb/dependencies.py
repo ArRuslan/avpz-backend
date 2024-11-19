@@ -89,3 +89,13 @@ async def captcha_dep(data: CaptchaExpectedRequest) -> None:
 
 
 CaptchaDep = Depends(captcha_dep)
+
+
+async def user_dep(user_id: int) -> User:
+    if (user := await User.get_or_none(id=user_id)) is None:
+        raise MultipleErrorsException("Unknown user.", 404)
+
+    return user
+
+
+UserDep = Annotated[User, Depends(user_dep)]

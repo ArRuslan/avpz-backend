@@ -13,9 +13,11 @@ IS_DEBUG = str(environ.get("IS_DEBUG")).lower() in ("true", "1")
 if IS_DEBUG:  # pragma: no cover
     DB_CONNECTION_STRING = environ.get("DB_CONNECTION_STRING", "sqlite://:memory:")
     BCRYPT_ROUNDS = environ.get("BCRYPT_ROUNDS", 6)
+    DONT_CREATE_TEST_DATA = str(environ.get("DONT_CREATE_TEST_DATA")).lower() in ("true", "1")
 else:  # pragma: no cover
     DB_CONNECTION_STRING = environ["DB_CONNECTION_STRING"]
     BCRYPT_ROUNDS = environ.get("BCRYPT_ROUNDS", 12)
+    DONT_CREATE_TEST_DATA = True
 
 JWT_KEY = b64decode(environ.get("JWT_KEY", b64encode(urandom(32)).decode("utf8")))
 

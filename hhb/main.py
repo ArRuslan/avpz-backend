@@ -42,7 +42,7 @@ async def migrate_and_connect_orm(app_: FastAPI):  # pragma: no cover
             modules={"models": ["hhb.models"]},
             generate_schemas=True,
     ):
-        if config.IS_DEBUG:
+        if config.IS_DEBUG and not config.DONT_CREATE_TEST_DATA:
             await create_test_data()
         yield
 
