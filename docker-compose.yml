@@ -1,0 +1,42 @@
+version: '3'
+
+services:
+  mariadb:
+    image: mariadb:10.6
+    networks: ['hhb']
+    volumes: ['mariadb_data:/var/lib/mysql']
+    environment:
+      - MARIADB_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MARIADB_DATABASE=hhb
+      - MARIADB_USER=${MYSQL_USER}
+      - MARIADB_PASSWORD=${MYSQL_PASSWORD}
+    restart: unless-stopped
+  hhb:
+    build: .
+    pull_policy: build
+    networks: ['hhb']
+    volumes: ['hhb_data:/hhb/data']
+    ports:
+      - '127.0.0.1:${HOST_PORT}:8000'
+    environment:
+      - DB_CONNECTION_STRING=mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mariadb/hhb
+      - JWT_KEY=${JWT_KEY}
+      - PAYPAL_ID=${PAYPAL_ID}
+      - PAYPAL_SECRET=${PAYPAL_SECRET}
+      - RECAPTCHA_SITEKEY=${RECAPTCHA_SITEKEY}
+      - RECAPTCHA_SECRET=${RECAPTCHA_SECRET}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+    depends_on:
+      - mariadb
+    restart: unless-stopped
+
+networks:
+  hhb:
+    driver: bridge
+
+volumes:
+  mariadb_data:
+    driver: local
+  hhb_data:
+    driver: local

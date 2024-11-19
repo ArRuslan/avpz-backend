@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from aerich import Command
 from fastapi import FastAPI
@@ -69,7 +70,6 @@ app.include_router(admin.router)
 
 if config.IS_DEBUG:
     import fastapi.openapi.utils as fu
-    from pathlib import Path
     from datetime import datetime
     from pytz import UTC
 
