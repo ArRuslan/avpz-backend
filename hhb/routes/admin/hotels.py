@@ -2,7 +2,8 @@ from fastapi import APIRouter, Query
 
 from hhb.dependencies import HotelDep, JwtAuthGlobalDepN, JwtAuthHotelDep, JwtAuthRoomsDep
 from hhb.models import Hotel, UserRole, User, HotelAdmin, Room
-from hhb.schemas.admin import GetHotelsQuery, PaginationResponse
+from hhb.schemas.admin import GetHotelsQuery
+from hhb.schemas.common import PaginationResponse
 from hhb.schemas.hotels import HotelResponse, HotelCreateRequest, HotelEditRequest, HotelResponseForAdmins, \
     HotelAddAdminRequest, HotelEditAdminRequest
 from hhb.schemas.rooms import RoomResponse, RoomCreateRequest

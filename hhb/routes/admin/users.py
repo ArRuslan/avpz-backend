@@ -3,7 +3,8 @@ from pydantic import EmailStr
 
 from hhb.dependencies import UserDep, JwtAuthGlobalDepN
 from hhb.models import User
-from hhb.schemas.admin import GetUsersQuery, PaginationResponse
+from hhb.schemas.admin import GetUsersQuery
+from hhb.schemas.common import PaginationResponse
 from hhb.schemas.user import UserInfoResponse
 from hhb.utils.multiple_errors_exception import MultipleErrorsException
 
