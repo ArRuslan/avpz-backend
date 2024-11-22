@@ -22,7 +22,8 @@ async def test_create_hotel(client: AsyncClient):
 
     response = await client.get("/hotels", headers={"authorization": token})
     assert response.status_code == 200, response.json()
-    assert len(response.json()) == 0
+    assert response.json()["count"] == 0
+    assert len(response.json()["result"]) == 0
 
     response = await client.post("/admin/hotels", headers={"authorization": token}, json={
         "name": "test",
@@ -36,8 +37,9 @@ async def test_create_hotel(client: AsyncClient):
 
     response = await client.get("/hotels", headers={"authorization": token})
     assert response.status_code == 200, response.json()
-    assert len(response.json()) == 1
-    assert response.json() == [hotel_resp]
+    assert response.json()["count"] == 1
+    assert len(response.json()["result"]) == 1
+    assert response.json()["result"] == [hotel_resp]
 
 
 @pytest.mark.asyncio
@@ -70,3 +72,29 @@ async def test_edit_hotel(client: AsyncClient):
     assert hotel_resp["name"] == "test123"
     assert hotel_resp["address"] == "test address"
     assert hotel_resp["description"] == "desc"
+
+
+@pytest.mark.asyncio
+async def test_search_hotels(client: AsyncClient):
+    await Hotel.bulk_create([
+        Hotel(name="test", address="test address"),
+        Hotel(name="test1", address="test address"),
+        Hotel(name="test123", address="test address"),
+        Hotel(name="qwe", address="some address"),
+    ])
+
+    response = await client.get(f"/hotels", params={"name": "test"})
+    assert response.status_code == 200, response.json()
+    assert response.json()["count"] == 3
+    assert len(response.json()["result"]) == 3
+
+    response = await client.get(f"/hotels", params={"name": "qwe"})
+    assert response.status_code == 200, response.json()
+    assert response.json()["count"] == 1
+    assert len(response.json()["result"]) == 1
+
+    response = await client.get(f"/hotels", params={"address": "address"})
+    assert response.status_code == 200, response.json()
+    assert response.json()["count"] == 4
+    assert len(response.json()["result"]) == 4
+

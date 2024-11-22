@@ -1,6 +1,7 @@
 from pydantic import BaseModel, field_validator
 
 from hhb.models import UserRole
+from hhb.schemas.common import PaginationQuery
 from hhb.schemas.user import UserInfoResponse
 
 
@@ -43,3 +44,9 @@ class HotelAddAdminRequest(HotelRoleRequest):
 
 class HotelEditAdminRequest(HotelRoleRequest):
     ...
+
+
+class SearchHotelsQuery(PaginationQuery):
+    name: str | None = None
+    address: str | None = None
+    description: str | None = None

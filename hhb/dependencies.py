@@ -17,9 +17,10 @@ class JWTAuthSession:
             x_token: str | None = Header(
                 default=None,
                 description=(
-                        "Use this as authorization header here. "
+                        "# Use this as authorization header here. "
                         "Do not use it in real application! "
-                        "It exists ONLY because openapi is not allowing to use authorization header in web docs."
+                        "It exists ONLY because openapi is not allowing to use authorization header in web docs. \n"
+                        "# In real application use ONLY \"Authorization\" header!!!"
                 ),
             ),
     ) -> Session:
