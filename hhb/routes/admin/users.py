@@ -1,28 +1,22 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import EmailStr
 
 from hhb.dependencies import UserDep, JwtAuthGlobalDepN
-from hhb.models import UserRole, User
-from hhb.schemas.admin import UserListResponse
+from hhb.models import User
+from hhb.schemas.admin import GetUsersQuery, PaginationResponse
 from hhb.schemas.user import UserInfoResponse
 from hhb.utils.multiple_errors_exception import MultipleErrorsException
 
 router = APIRouter(prefix="/users")
 
 
-@router.get("", response_model=UserListResponse, dependencies=[JwtAuthGlobalDepN])
-async def get_users(role: UserRole | None = None, page: int = 1, page_size: int = 50):
-    page -= 1
-    if page < 0:
-        page = 0
-    if page_size < 5:
-        page_size = 5
-    if page_size > 100:
-        page_size = 100
+@router.get("", response_model=PaginationResponse[UserInfoResponse], dependencies=[JwtAuthGlobalDepN])
+async def get_users(query: GetUsersQuery = Query()):
+    query.page -= 1
 
-    query = User.filter(**({"role": role} if role is not None else {}))
-    count = await query.count()
-    users = await query.order_by("id").offset(page * page_size).limit(page_size)
+    db_query = User.filter(**({"role": query.role} if query.role is not None else {}))
+    count = await db_query.count()
+    users = await db_query.order_by("id").offset(query.page * query.page_size).limit(query.page_size)
 
     return {
         "count": count,

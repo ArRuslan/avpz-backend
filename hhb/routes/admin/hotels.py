@@ -1,7 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from hhb.dependencies import HotelDep, JwtAuthGlobalDepN, JwtAuthHotelDep, JwtAuthRoomsDep
 from hhb.models import Hotel, UserRole, User, HotelAdmin, Room
+from hhb.schemas.admin import GetHotelsQuery, PaginationResponse
 from hhb.schemas.hotels import HotelResponse, HotelCreateRequest, HotelEditRequest, HotelResponseForAdmins, \
     HotelAddAdminRequest, HotelEditAdminRequest
 from hhb.schemas.rooms import RoomResponse, RoomCreateRequest
@@ -139,3 +140,26 @@ async def create_hotel_room(hotel: HotelDep, user: JwtAuthRoomsDep, data: RoomCr
 
     room = await Room.create(hotel=hotel, **data.model_dump())
     return await room.to_json()
+
+
+@router.get("", response_model=PaginationResponse[HotelResponse])
+async def get_hotels_for_admins(user: JwtAuthRoomsDep, query: GetHotelsQuery = Query()):
+    query.page -= 1
+
+    if user.role < UserRole.GLOBAL_ADMIN:
+        admin = await HotelAdmin.get_or_none(user=user).select_related("hotel")
+        count = 1 if admin else 0
+        hotels = [admin.hotel] if admin else []
+    else:
+        db_query = Hotel.all()
+        count = await db_query.count()
+        hotels = await db_query.order_by("id").offset(query.page * query.page_size).limit(query.page_size)
+
+    return {
+        "count": count,
+        "result": [
+            hotel.to_json()
+            for hotel in hotels
+        ],
+    }
+

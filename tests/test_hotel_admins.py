@@ -360,3 +360,59 @@ async def test_hotel_delete_admin_nonexistent_user(client: AsyncClient):
 
     response = await client.delete(f"/admin/hotels/{hotel.id}/admins/123123123", headers={"authorization": token})
     assert response.status_code == 404, response.json()
+
+
+@pytest.mark.asyncio
+async def test_hotels_get(client: AsyncClient):
+    token = await create_token(UserRole.GLOBAL_ADMIN)
+    await Hotel.bulk_create([
+        Hotel(
+            name=f"Some hotel {i}",
+            address="somewhere",
+        )
+        for i in range(10)
+    ])
+
+    response = await client.get(f"/admin/hotels", headers={"authorization": token})
+    assert response.status_code == 200, response.json()
+    assert response.json()["count"] == 10
+    assert len(response.json()["result"]) == 10
+
+    response = await client.get(f"/admin/hotels?page_size=5", headers={"authorization": token})
+    assert response.status_code == 200, response.json()
+    assert response.json()["count"] == 10
+    assert len(response.json()["result"]) == 5
+
+    response = await client.get(f"/admin/hotels?page_size=1000", headers={"authorization": token})
+    assert response.status_code == 200, response.json()
+    assert response.json()["count"] == 10
+    assert len(response.json()["result"]) == 10
+
+    response = await client.get(f"/admin/hotels?page_size=1", headers={"authorization": token})
+    assert response.status_code == 200, response.json()
+    assert response.json()["count"] == 10
+    assert len(response.json()["result"]) == 5
+
+    response = await client.get(f"/admin/hotels?page=-1", headers={"authorization": token})
+    assert response.status_code == 200, response.json()
+    assert response.json()["count"] == 10
+    assert len(response.json()["result"]) == 10
+
+    response = await client.get(f"/admin/hotels?page=2", headers={"authorization": token})
+    assert response.status_code == 200, response.json()
+    assert response.json()["count"] == 10
+    assert len(response.json()["result"]) == 0
+
+
+@pytest.mark.asyncio
+async def test_get_all_hotel_admin_hotels(client: AsyncClient):
+    user = await create_user(UserRole.HOTEL_ADMIN)
+    token = (await Session.create(user=user)).to_jwt()
+    hotel = await Hotel.create(name="test", address="test address")
+    await Hotel.create(name="test2", address="test address")
+    await HotelAdmin.create(hotel=hotel, user=user)
+
+    response = await client.get(f"/admin/hotels", headers={"authorization": token})
+    assert response.status_code == 200, response.json()
+    assert response.json()["count"] == 1
+    assert len(response.json()["result"]) == 1
