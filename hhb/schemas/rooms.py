@@ -1,6 +1,7 @@
 from pydantic import BaseModel, field_validator
 
 from hhb.models import UserRole
+from hhb.schemas.common import PaginationQuery
 from hhb.schemas.user import UserInfoResponse
 
 
@@ -21,3 +22,9 @@ class RoomEditRequest(RoomCreateRequest):
     type: str | None = None
     price: float | None = None
 
+
+class SearchRoomsQuery(PaginationQuery):
+    hotel_id: int | None = None
+    type: str | None = None
+    price_min: float | None = None
+    price_max: float | None = None
