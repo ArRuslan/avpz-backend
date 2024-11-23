@@ -2,10 +2,11 @@ from datetime import datetime
 
 from fastapi import APIRouter, Query
 
-from ..dependencies import RoomDep, JwtAuthUserDep
+from ..dependencies import RoomDep, JwtAuthUserDep, BookingDep
 from ..models import Booking, BookingStatus
 from ..schemas.bookings import ListBookingsQuery, BookingType, BookingResponse
 from ..schemas.common import PaginationResponse
+from ..utils.multiple_errors_exception import MultipleErrorsException
 
 router = APIRouter(prefix="/bookings")
 
@@ -37,6 +38,18 @@ async def list_bookings(user: JwtAuthUserDep, query: ListBookingsQuery = Query()
     }
 
 
-@router.get("/{room_id}", response_model=BookingResponse)
-async def get_room(room: RoomDep):
-    return await room.to_json()
+@router.get("/{booking_id}", response_model=BookingResponse)
+async def get_booking(booking: BookingDep):
+    return await booking.to_json()
+
+
+@router.post("/{booking_id}/cancel", status_code=204)
+async def cancel_booking(booking: BookingDep):
+    if booking.status == BookingStatus.CANCELLED:
+        raise MultipleErrorsException("This booking is already cancelled.")
+    if booking.check_in > datetime.now():
+        raise MultipleErrorsException("Active booking can not be cancelled.")
+
+    booking.status = BookingStatus.CANCELLED
+    await booking.save(update_fields="status")
+    # TODO: cancel paypal payment if made
