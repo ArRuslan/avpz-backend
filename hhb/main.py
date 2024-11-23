@@ -10,7 +10,7 @@ from tortoise import Tortoise
 from tortoise.contrib.fastapi import RegisterTortoise
 
 from . import config
-from .routes import auth, user, hotels, admin, rooms
+from .routes import auth, user, hotels, admin, rooms, bookings
 from .utils.create_test_data import create_test_data
 from .utils.multiple_errors_exception import MultipleErrorsException
 
@@ -66,6 +66,7 @@ app.include_router(auth.router)
 app.include_router(user.router)
 app.include_router(hotels.router)
 app.include_router(rooms.router)
+app.include_router(bookings.router)
 app.include_router(admin.router)
 
 

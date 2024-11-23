@@ -23,3 +23,15 @@ class Booking(Model):
     total_price: float = fields.FloatField()
     status: BookingStatus = fields.IntEnumField(BookingStatus, default=BookingStatus.PENDING)
     created_at: datetime = fields.DatetimeField(auto_now_add=True)
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "user_id": self.user.id,
+            "room_id": self.room.id,
+            "check_in": int(self.check_in.timestamp()),
+            "check_out": int(self.check_out.timestamp()),
+            "total_price": self.total_price,
+            "status": self.status,
+            "created_at": int(self.created_at.timestamp()),
+        }
