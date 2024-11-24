@@ -55,7 +55,7 @@ async def list_bookings(user: JwtAuthUserDep, query: ListBookingsQuery = Query()
     return {
         "count": count,
         "result": [
-            booking.to_json()
+            await booking.to_json()
             for booking in bookings
         ],
     }
