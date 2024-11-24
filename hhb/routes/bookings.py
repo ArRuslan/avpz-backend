@@ -1,14 +1,37 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Query
+from pytz import UTC
+from tortoise.expressions import Q
 
-from ..dependencies import RoomDep, JwtAuthUserDep, BookingDep
-from ..models import Booking, BookingStatus
-from ..schemas.bookings import ListBookingsQuery, BookingType, BookingResponse
+from ..dependencies import JwtAuthUserDep, BookingDep, room_dep
+from ..models import Booking, BookingStatus, Payment
+from ..schemas.bookings import ListBookingsQuery, BookingType, BookingResponse, BookRoomRequest
 from ..schemas.common import PaginationResponse
 from ..utils.multiple_errors_exception import MultipleErrorsException
+from ..utils.paypal import PayPal
 
 router = APIRouter(prefix="/bookings")
+
+
+@router.post("", response_model=BookingResponse)
+async def book_room(user: JwtAuthUserDep, data: BookRoomRequest):
+    check_in = datetime.fromtimestamp(data.check_in, UTC).date()
+    check_out = datetime.fromtimestamp(data.check_out, UTC).date()
+
+    room = await room_dep(data.room_id)
+    query = Q(room=room) & (Q(check_in__range=(check_in, check_out)) | Q(check_out__range=(check_in, check_out)))
+    if await Booking.exists(query):
+        raise MultipleErrorsException("Room is not available for this dates!")
+
+    price = room.price * (check_out - check_in).days
+    booking = await Booking.create(
+        room=room, user=user, check_in=data.check_in, check_out=data.check_out, total_price=price
+    )
+    order_id = await PayPal.create(price)
+    await Payment.create(booking=booking, paypal_order_id=order_id)
+
+    return await booking.to_json()
 
 
 @router.get("", response_model=PaginationResponse[BookingResponse])
@@ -40,6 +63,14 @@ async def list_bookings(user: JwtAuthUserDep, query: ListBookingsQuery = Query()
 
 @router.get("/{booking_id}", response_model=BookingResponse)
 async def get_booking(booking: BookingDep):
+    if booking.status == BookingStatus.PENDING:
+        payment = await Payment.get_or_none(booking=booking)
+        payment.paypal_capture_id = await PayPal.capture(payment.paypal_order_id)
+        if payment.paypal_capture_id is not None:
+            await payment.save(update_fields=["paypal_capture_id"])
+            booking.status = BookingStatus.CONFIRMED
+            await booking.save(update_fields=["status"])
+
     return await booking.to_json()
 
 
@@ -47,9 +78,16 @@ async def get_booking(booking: BookingDep):
 async def cancel_booking(booking: BookingDep):
     if booking.status == BookingStatus.CANCELLED:
         raise MultipleErrorsException("This booking is already cancelled.")
+    if booking.status == BookingStatus.PENDING:
+        raise MultipleErrorsException("This booking is waiting for payment.")
     if booking.check_in > datetime.now():
         raise MultipleErrorsException("Active booking can not be cancelled.")
 
+    payment = await Payment.get_or_none(booking=booking)
+    if payment.paypal_capture_id is None:
+        raise MultipleErrorsException("Payment does not have capture id.")
+    if not await PayPal.refund(payment.paypal_capture_id, booking.total_price):
+        raise MultipleErrorsException("Failed to request refund for this booking.")
+
     booking.status = BookingStatus.CANCELLED
     await booking.save(update_fields="status")
-    # TODO: cancel paypal payment if made
