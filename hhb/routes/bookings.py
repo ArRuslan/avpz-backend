@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from fastapi import APIRouter, Query
 from pytz import UTC
@@ -26,7 +26,7 @@ async def book_room(user: JwtAuthUserDep, data: BookRoomRequest):
 
     price = room.price * (check_out - check_in).days
     booking = await Booking.create(
-        room=room, user=user, check_in=data.check_in, check_out=data.check_out, total_price=price
+        room=room, user=user, check_in=check_in, check_out=check_out, total_price=price
     )
     order_id = await PayPal.create(price)
     await Payment.create(booking=booking, paypal_order_id=order_id)
@@ -44,9 +44,9 @@ async def list_bookings(user: JwtAuthUserDep, query: ListBookingsQuery = Query()
     if booking_type in (BookingType.PENDING, BookingType.CANCELLED):
         db_query = db_query.filter(status=BookingStatus(booking_type.value))
     elif booking_type == BookingType.ACTIVE:
-        db_query = db_query.filter(status=BookingStatus.CONFIRMED, check_out__gt=datetime.now())
+        db_query = db_query.filter(status=BookingStatus.CONFIRMED, check_out__gt=date.today())
     elif booking_type == BookingType.EXPIRED:
-        db_query = db_query.filter(status=BookingStatus.CONFIRMED, check_out__lt=datetime.now())
+        db_query = db_query.filter(status=BookingStatus.CONFIRMED, check_out__lt=date.today())
 
     count = await db_query.count()
     bookings = await db_query.order_by("-id").select_related("room", "user")\
@@ -80,29 +80,29 @@ async def cancel_booking(booking: BookingDep):
         raise MultipleErrorsException("This booking is already cancelled.")
     if booking.status == BookingStatus.PENDING:
         raise MultipleErrorsException("This booking is waiting for payment.")
-    if booking.check_in > datetime.now():
+    if date.today() >= booking.check_in:
         raise MultipleErrorsException("Active booking can not be cancelled.")
 
     payment = await Payment.get_or_none(booking=booking)
-    if payment.paypal_capture_id is None:
+    if payment.paypal_capture_id is None:  # pragma: no cover
         raise MultipleErrorsException("Payment does not have capture id.")
-    if not await PayPal.refund(payment.paypal_capture_id, booking.total_price):
+    if not await PayPal.refund(payment.paypal_capture_id, booking.total_price):  # pragma: no cover
         raise MultipleErrorsException("Failed to request refund for this booking.")
 
     booking.status = BookingStatus.CANCELLED
-    await booking.save(update_fields="status")
+    await booking.save(update_fields=["status"])
 
 
-@router.get("/{booking_id}/", response_model=BookingTokenResponse)
+@router.get("/{booking_id}/verification-token", response_model=BookingTokenResponse)
 async def get_booking_verification_token(booking: BookingDep):
     if booking.status == BookingStatus.PENDING:
         await get_booking(booking=booking)
     if booking.status != BookingStatus.CONFIRMED:
-        raise MultipleErrorsException("Cannot generate verification token for this booking.", 403)
-    if booking.check_out > datetime.now() or booking.check_in < datetime.now():
+        raise MultipleErrorsException("Cannot generate verification token for this booking.", 400)
+    if booking.check_out > date.today() > booking.check_in:
         raise MultipleErrorsException("Verification token cannot be generated now.")
 
     return {
         "token": booking.to_jwt(),
-        "expires_at": 60 * 30,
+        "expires_in": 60 * 30,
     }

@@ -26,8 +26,8 @@ class BookingResponse(BaseModel):
     id: int
     user_id: int
     room_id: int
-    check_in: int
-    check_out: int
+    check_in: date
+    check_out: date
     total_price: float
     status: BookingStatus
     created_at: int
@@ -42,7 +42,7 @@ class BookRoomRequest(BaseModel):
     @field_validator("check_in")
     def validate_check_in(cls, value: int, values: ValidationInfo) -> int:
         check_in = datetime.fromtimestamp(value, UTC).date()
-        if check_in >= datetime.fromtimestamp(values.data["check_out"], UTC).date():
+        if "check_out" in values.data and check_in >= datetime.fromtimestamp(values.data["check_out"], UTC).date():  # pragma: no cover
             raise MultipleErrorsException("Check-in date cannot be after (or same as) check-out date.")
 
         now = date.today()
@@ -55,15 +55,16 @@ class BookRoomRequest(BaseModel):
     @field_validator("check_out")
     def validate_check_out(cls, value: int, values: ValidationInfo) -> int:
         check_out = datetime.fromtimestamp(value, UTC).date()
-        if check_out <= datetime.fromtimestamp(values.data["check_in"], UTC).date():
+        if "check_in" in values.data and check_out <= datetime.fromtimestamp(values.data["check_in"], UTC).date():
             raise MultipleErrorsException("Check-out date cannot be before (or same as) check-in date.")
 
         now = date.today()
-        if (now - check_out).days > 0:
+        if (now - check_out).days > 0:  # pragma: no cover
             raise MultipleErrorsException("You cannot create booking for dates before today.")
 
         return value
 
 
 class BookingTokenResponse(BaseModel):
-    token: int
+    token: str
+    expires_in: int

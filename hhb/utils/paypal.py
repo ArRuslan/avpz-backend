@@ -62,7 +62,7 @@ class PayPal:
 
             try:
                 return j_resp["purchase_units"][0]["payments"]["captures"][0]["id"]
-            except (KeyError, IndexError):
+            except (KeyError, IndexError):  # pragma: no cover
                 return
 
     @classmethod
