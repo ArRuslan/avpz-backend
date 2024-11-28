@@ -5,7 +5,9 @@ from enum import IntEnum
 
 from tortoise import fields, Model
 
-from hhb import models
+from hhb import models, config
+from hhb.utils import JWT
+from hhb.utils.jwt import JWTPurpose
 
 
 class BookingStatus(IntEnum):
@@ -23,6 +25,17 @@ class Booking(Model):
     total_price: float = fields.FloatField()
     status: BookingStatus = fields.IntEnumField(BookingStatus, default=BookingStatus.PENDING)
     created_at: datetime = fields.DatetimeField(auto_now_add=True)
+
+    def to_jwt(self) -> str:
+        return JWT.encode(
+            {
+                "u": self.user.id,
+                "b": self.id,
+            },
+            config.JWT_KEY,
+            expires_in=60 * 30,
+            purpose=JWTPurpose.BOOKING,
+        )
 
     async def to_json(self):
         payment = await models.Payment.get_or_none(booking=self)

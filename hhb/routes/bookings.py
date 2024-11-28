@@ -6,7 +6,7 @@ from tortoise.expressions import Q
 
 from ..dependencies import JwtAuthUserDep, BookingDep, room_dep
 from ..models import Booking, BookingStatus, Payment
-from ..schemas.bookings import ListBookingsQuery, BookingType, BookingResponse, BookRoomRequest
+from ..schemas.bookings import ListBookingsQuery, BookingType, BookingResponse, BookRoomRequest, BookingTokenResponse
 from ..schemas.common import PaginationResponse
 from ..utils.multiple_errors_exception import MultipleErrorsException
 from ..utils.paypal import PayPal
@@ -91,3 +91,18 @@ async def cancel_booking(booking: BookingDep):
 
     booking.status = BookingStatus.CANCELLED
     await booking.save(update_fields="status")
+
+
+@router.get("/{booking_id}/", response_model=BookingTokenResponse)
+async def get_booking_verification_token(booking: BookingDep):
+    if booking.status == BookingStatus.PENDING:
+        await get_booking(booking=booking)
+    if booking.status != BookingStatus.CONFIRMED:
+        raise MultipleErrorsException("Cannot generate verification token for this booking.", 403)
+    if booking.check_out > datetime.now() or booking.check_in < datetime.now():
+        raise MultipleErrorsException("Verification token cannot be generated now.")
+
+    return {
+        "token": booking.to_jwt(),
+        "expires_at": 60 * 30,
+    }

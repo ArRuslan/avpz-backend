@@ -63,3 +63,7 @@ class BookRoomRequest(BaseModel):
             raise MultipleErrorsException("You cannot create booking for dates before today.")
 
         return value
+
+
+class BookingTokenResponse(BaseModel):
+    token: int

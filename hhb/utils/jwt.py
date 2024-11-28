@@ -10,6 +10,7 @@ class JWTPurpose:
     PASSWORD_RESET = 1
     AUTH_REFRESH = 2
     MFA = 3
+    BOOKING = 4
 
 
 def assert_(value: ..., exc_cls: type[Exception] = ValueError):  # pragma: no cover
