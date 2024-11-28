@@ -7,6 +7,7 @@ from httpx import AsyncClient
 from pytest_httpx import HTTPXMock
 
 from hhb.models import Hotel, Room, BookingStatus, Booking
+from hhb.schemas.bookings import BookingType
 from hhb.utils.paypal import PayPal
 from tests.conftest import create_token
 from tests.paypal_mock import PaypalMockState
@@ -17,6 +18,26 @@ httpx_mock_decorator = pytest.mark.httpx_mock(
     assert_all_responses_were_requested=False,
     can_send_already_matched_responses=True,
 )
+
+async def check_bookings_counts(
+        client: AsyncClient, token: str, pending_count: int, active_count: int, cancelled_count: int,
+        expired_count: int,
+) -> None:
+    total_count = pending_count + active_count + cancelled_count + expired_count
+    queries = [
+        (BookingType.PENDING, pending_count),
+        (BookingType.ACTIVE, active_count),
+        (BookingType.CANCELLED, cancelled_count),
+        (BookingType.EXPIRED, expired_count),
+        (BookingType.ALL, total_count),
+    ]
+
+    for typ, count in queries:
+        response = await client.get(f"/bookings?type={typ.value}", headers={"authorization": token})
+        assert response.status_code == 200, response.json()
+        assert response.json()["count"] == count
+        assert len(response.json()["result"]) == count
+
 
 @httpx_mock_decorator
 @pytest.mark.asyncio
@@ -44,6 +65,8 @@ async def test_full_booking_process(client: AsyncClient, httpx_mock: HTTPXMock):
     booking_id = response.json()["id"]
     payment_id = response.json()["payment_id"]
 
+    await check_bookings_counts(client, token, 1, 0, 0, 0)
+
     response = await client.get(f"/bookings/{booking_id}", headers={"authorization": token})
     assert response.status_code == 200, response.json()
     assert response.json()["payment_id"] is not None
@@ -59,6 +82,8 @@ async def test_full_booking_process(client: AsyncClient, httpx_mock: HTTPXMock):
     assert response.json()["payment_id"] is not None
     assert response.json()["status"] == BookingStatus.CONFIRMED
 
+    await check_bookings_counts(client, token, 0, 1, 0, 0)
+
     await Booking.filter(id=booking_id).update(check_in=date.today())
     response = await client.get(f"/bookings/{booking_id}/verification-token", headers={"authorization": token})
     assert response.status_code == 200, response.json()
@@ -66,6 +91,8 @@ async def test_full_booking_process(client: AsyncClient, httpx_mock: HTTPXMock):
 
     response = await client.post(f"/bookings/{booking_id}/cancel", headers={"authorization": token})
     assert response.status_code == 204, response.json()
+
+    await check_bookings_counts(client, token, 0, 0, 1, 0)
 
     response = await client.get(f"/bookings/{booking_id}", headers={"authorization": token})
     assert response.status_code == 200, response.json()
@@ -237,3 +264,11 @@ async def test_booking_invalid_dates(client: AsyncClient):
         },
     )
     assert response.status_code == 400, response.json()
+
+
+@pytest.mark.asyncio
+async def test_booking_get_unknown(client: AsyncClient):
+    token = await create_token()
+
+    response = await client.get(f"/bookings/123456", headers={"authorization": token})
+    assert response.status_code == 404, response.json()
