@@ -15,11 +15,6 @@ router = APIRouter(prefix="/bookings")
 
 @router.post("", response_model=BookingResponse)
 async def book_room(user: JwtAuthUserDep, data: BookRoomRequest):
-    """
-    # !!! WARNING !!!
-    # `check_in` and `check_out` as unix timestamps kinda <del>suck</del> don't make any sense, so they'll probably be replaced with date in "yyyy-mm-dd" format
-    # !!! WARNING !!!
-    """
     dates_range = (data.check_in, data.check_out)
 
     room = await room_dep(data.room_id)
