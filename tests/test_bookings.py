@@ -6,6 +6,7 @@ import pytest
 from httpx import AsyncClient
 from pytest_httpx import HTTPXMock
 
+from hhb import config
 from hhb.models import Hotel, Room, BookingStatus, Booking
 from hhb.schemas.bookings import BookingType
 from hhb.utils.paypal import PayPal
@@ -55,8 +56,8 @@ async def test_full_booking_process(client: AsyncClient, httpx_mock: HTTPXMock):
     response = await client.post(
         f"/bookings", headers={"authorization": token}, json={
             "room_id": room.id,
-            "check_in": int(time() + 86400),
-            "check_out": int(time() + 86400 * 7),
+            "check_in": str(date.today() + timedelta(days=1)),
+            "check_out": str(date.today() + timedelta(days=7)),
         },
     )
     assert response.status_code == 200, response.json()
@@ -116,8 +117,8 @@ async def test_booking_cancel_twice(client: AsyncClient, httpx_mock: HTTPXMock):
     response = await client.post(
         f"/bookings", headers={"authorization": token}, json={
             "room_id": room.id,
-            "check_in": int(time() + 86400),
-            "check_out": int(time() + 86400 * 7),
+            "check_in": str(date.today() + timedelta(days=1)),
+            "check_out": str(date.today() + timedelta(days=7)),
         },
     )
     assert response.status_code == 200, response.json()
@@ -154,8 +155,8 @@ async def test_booking_cancel_pending(client: AsyncClient, httpx_mock: HTTPXMock
     response = await client.post(
         f"/bookings", headers={"authorization": token}, json={
             "room_id": room.id,
-            "check_in": int(time() + 86400),
-            "check_out": int(time() + 86400 * 7),
+            "check_in": str(date.today() + timedelta(days=1)),
+            "check_out": str(date.today() + timedelta(days=7)),
         },
     )
     assert response.status_code == 200, response.json()
@@ -181,8 +182,8 @@ async def test_booking_twice_for_one_date(client: AsyncClient, httpx_mock: HTTPX
     response = await client.post(
         f"/bookings", headers={"authorization": token}, json={
             "room_id": room.id,
-            "check_in": int(time() + 86400),
-            "check_out": int(time() + 86400 * 7),
+            "check_in": str(date.today() + timedelta(days=1)),
+            "check_out": str(date.today() + timedelta(days=7)),
         },
     )
     assert response.status_code == 200, response.json()
@@ -190,8 +191,8 @@ async def test_booking_twice_for_one_date(client: AsyncClient, httpx_mock: HTTPX
     response = await client.post(
         f"/bookings", headers={"authorization": token}, json={
             "room_id": room.id,
-            "check_in": int(time() + 86400),
-            "check_out": int(time() + 86400 * 2),
+            "check_in": str(date.today() + timedelta(days=1)),
+            "check_out": str(date.today() + timedelta(days=2)),
         },
     )
     assert response.status_code == 400, response.json()
@@ -213,8 +214,8 @@ async def test_booking_verify_cancelled(client: AsyncClient, httpx_mock: HTTPXMo
     response = await client.post(
         f"/bookings", headers={"authorization": token}, json={
             "room_id": room.id,
-            "check_in": int(time()),
-            "check_out": int(time() + 86400 * 7),
+            "check_in": str(date.today()),
+            "check_out": str(date.today() + timedelta(days=7)),
         },
     )
     assert response.status_code == 200, response.json()
@@ -241,8 +242,8 @@ async def test_booking_invalid_dates(client: AsyncClient):
     response = await client.post(
         f"/bookings", headers={"authorization": token}, json={
             "room_id": 123123,
-            "check_in": int(time() - 86400),
-            "check_out": int(time() + 86400 * 7),
+            "check_in": str(date.today() - timedelta(days=1)),
+            "check_out": str(date.today() + timedelta(days=7)),
         },
     )
     assert response.status_code == 400, response.json()
@@ -250,8 +251,8 @@ async def test_booking_invalid_dates(client: AsyncClient):
     response = await client.post(
         f"/bookings", headers={"authorization": token}, json={
             "room_id": 123123,
-            "check_in": int(time() + 86400),
-            "check_out": int(time() - 86400 * 7),
+            "check_in": str(date.today() + timedelta(days=1)),
+            "check_out": str(date.today() - timedelta(days=7)),
         },
     )
     assert response.status_code == 400, response.json()
@@ -259,11 +260,43 @@ async def test_booking_invalid_dates(client: AsyncClient):
     response = await client.post(
         f"/bookings", headers={"authorization": token}, json={
             "room_id": 123123,
-            "check_in": int(time() + 86400),
-            "check_out": int(time() + 86400),
+            "check_in": str(date.today() + timedelta(days=1)),
+            "check_out": str(date.today() + timedelta(days=1)),
         },
     )
     assert response.status_code == 400, response.json()
+
+
+@pytest.mark.skipif(not config.IS_DEBUG, reason="Not debug")
+@httpx_mock_decorator
+@pytest.mark.asyncio
+async def test_booking_past_dates_in_debug(client: AsyncClient, httpx_mock: HTTPXMock):
+    mock_state = PaypalMockState()
+    httpx_mock.add_callback(mock_state.auth_callback, method="POST", url=PayPal.AUTHORIZE)
+    httpx_mock.add_callback(mock_state.order_callback, method="POST", url=PayPal.CHECKOUT)
+
+    token = await create_token()
+    hotel = await Hotel.create(name="test", address="test address")
+    room = await Room.create(hotel=hotel, type="test", price=123)
+
+    response = await client.post(
+        f"/bookings", headers={"authorization": token}, json={
+            "room_id": room.id,
+            "check_in": str(date.today() - timedelta(days=7)),
+            "check_out": str(date.today() - timedelta(days=1)),
+        },
+    )
+    assert response.status_code == 400, response.json()
+
+    response = await client.post(
+        f"/bookings", headers={"authorization": token}, json={
+            "room_id": room.id,
+            "check_in": str(date.today() - timedelta(days=7)),
+            "check_out": str(date.today() - timedelta(days=1)),
+            "DEBUG_DISABLE_PAST_DATES_CHECK": "true",
+        },
+    )
+    assert response.status_code == 200, response.json()
 
 
 @pytest.mark.asyncio

@@ -100,7 +100,7 @@ if config.IS_DEBUG:
 async def validation_exception_handler(_, exc: RequestValidationError) -> JSONResponse:
     result = []
     for err in exc.errors():
-        loc = ".".join(err["loc"][1:])
+        loc = ".".join([str(l) for l in err["loc"][1:]])
         if loc:
             loc = f"[{loc}] "
         result.append(f"{loc}{err['msg']}")

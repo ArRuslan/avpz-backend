@@ -1,7 +1,6 @@
-from datetime import datetime, date
+from datetime import date
 
 from fastapi import APIRouter, Query
-from pytz import UTC
 from tortoise.expressions import Q
 
 from ..dependencies import JwtAuthUserDep, BookingDep, room_dep
@@ -21,17 +20,16 @@ async def book_room(user: JwtAuthUserDep, data: BookRoomRequest):
     # `check_in` and `check_out` as unix timestamps kinda <del>suck</del> don't make any sense, so they'll probably be replaced with date in "yyyy-mm-dd" format
     # !!! WARNING !!!
     """
-    check_in = datetime.fromtimestamp(data.check_in, UTC).date()
-    check_out = datetime.fromtimestamp(data.check_out, UTC).date()
+    dates_range = (data.check_in, data.check_out)
 
     room = await room_dep(data.room_id)
-    query = Q(room=room) & (Q(check_in__range=(check_in, check_out)) | Q(check_out__range=(check_in, check_out)))
+    query = Q(room=room) & (Q(check_in__range=dates_range) | Q(check_out__range=dates_range))
     if await Booking.exists(query):
         raise MultipleErrorsException("Room is not available for this dates!")
 
-    price = room.price * (check_out - check_in).days
+    price = room.price * (data.check_out - data.check_in).days
     booking = await Booking.create(
-        room=room, user=user, check_in=check_in, check_out=check_out, total_price=price
+        room=room, user=user, check_in=data.check_in, check_out=data.check_out, total_price=price
     )
     order_id = await PayPal.create(price)
     await Payment.create(booking=booking, paypal_order_id=order_id)
