@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from datetime import date
+
 from tortoise import fields, Model
+from tortoise.expressions import Q
 
 from hhb import models
 
@@ -17,5 +20,7 @@ class Room(Model):
             "hotel_id": self.hotel.id,
             "type": self.type,
             "price": self.price,
-            "available": True,  # TODO: check if there is booking for datetime.now
+            "available": not await models.Booking.exists(
+                Q(room=self) & Q(check_in__lte=date.today()) & Q(check_out__gte=date.today())
+            ),
         }

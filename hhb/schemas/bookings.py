@@ -1,9 +1,8 @@
-from datetime import datetime, date
+from datetime import date
 from enum import IntEnum
 
 from pydantic import BaseModel, field_validator
 from pydantic_core.core_schema import ValidationInfo
-from pytz import UTC
 
 from hhb import config
 from hhb.models import BookingStatus

@@ -305,3 +305,33 @@ async def test_booking_get_unknown(client: AsyncClient):
 
     response = await client.get(f"/bookings/123456", headers={"authorization": token})
     assert response.status_code == 404, response.json()
+
+
+@httpx_mock_decorator
+@pytest.mark.asyncio
+async def test_booking_room_available_field(client: AsyncClient, httpx_mock: HTTPXMock):
+    mock_state = PaypalMockState()
+    httpx_mock.add_callback(mock_state.auth_callback, method="POST", url=PayPal.AUTHORIZE)
+    httpx_mock.add_callback(mock_state.order_callback, method="POST", url=PayPal.CHECKOUT)
+
+    token = await create_token()
+    hotel = await Hotel.create(name="test", address="test address")
+    room = await Room.create(hotel=hotel, type="test", price=123)
+
+    response = await client.get(f"/rooms/{room.id}")
+    assert response.status_code == 200, response.json()
+    assert response.json()["available"]
+
+    response = await client.post(
+        f"/bookings", headers={"authorization": token}, json={
+            "room_id": room.id,
+            "check_in": str(date.today() - timedelta(days=7)),
+            "check_out": str(date.today() + timedelta(days=1)),
+            "DEBUG_DISABLE_PAST_DATES_CHECK": "true",
+        },
+    )
+    assert response.status_code == 200, response.json()
+
+    response = await client.get(f"/rooms/{room.id}")
+    assert response.status_code == 200, response.json()
+    assert not response.json()["available"]
