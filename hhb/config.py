@@ -35,10 +35,10 @@ SMTP_PORT = _try_parse_int(environ.get("SMTP_PORT", 0), 0)
 PUBLIC_HOST = environ.get("PUBLIC_HOST", "https://127.0.0.1:8080")
 
 if IS_DEBUG:  # pragma: no cover
-    PAYPAL_ID = environ.get("PAYPAY_ID", "PAYPAY_ID")
+    PAYPAL_ID = environ.get("PAYPAL_ID", "PAYPAL_ID")
     if not PAYPAL_ID or PAYPAL_ID == "PAYPAL_ID":
         import warnings
-        warnings.warn("PAYPAY_ID is not set!")
+        warnings.warn("PAYPAL_ID is not set!")
     PAYPAL_SECRET = environ.get("PAYPAL_SECRET", "PAYPAL_SECRET")
     if not PAYPAL_SECRET or PAYPAL_SECRET == "PAYPAL_SECRET":
         import warnings
