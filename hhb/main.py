@@ -1,6 +1,8 @@
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import logfire
 from aerich import Command
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -95,6 +97,12 @@ if config.IS_DEBUG:
         last_commit = repo.head.commit
         last_commit_time = last_commit.committed_datetime.astimezone(UTC)
         app.description += f"\n# Git commit: {last_commit.hexsha[:8]}, {last_commit_time.strftime(time_fmt)}"
+
+
+if "pytest" not in sys.modules:
+    logfire.configure(service_name=app.title)
+    logfire.instrument_fastapi(app, capture_headers=True)
+
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(_, exc: RequestValidationError) -> JSONResponse:

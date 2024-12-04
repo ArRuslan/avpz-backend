@@ -2,6 +2,7 @@ from time import time
 
 from httpx import AsyncClient
 
+from .multiple_errors_exception import MultipleErrorsException
 from .. import config
 
 
@@ -25,6 +26,11 @@ class PayPal:
                 )
                 j = resp.json()
 
+                if "access_token" not in j or "expires_in" not in j:
+                    raise MultipleErrorsException(
+                        "Failed to obtain PayPal access token!" if config.IS_DEBUG else "An error occurred with PayPal"
+                    )
+
                 cls._access_token = j["access_token"]
                 cls._access_token_expires_at = time() + j["expires_in"]
 
@@ -45,7 +51,14 @@ class PayPal:
                     }],
                 },
             )
-            return resp.json()["id"]
+
+            j_resp = resp.json()
+            if "id" not in j_resp:
+                raise MultipleErrorsException(
+                    "Failed to create PayPal order!" if config.IS_DEBUG else "An error occurred with PayPal"
+                )
+
+            return j_resp["id"]
 
     @classmethod
     async def capture(cls, order_id: str) -> str | None:
