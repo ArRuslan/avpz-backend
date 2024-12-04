@@ -103,6 +103,7 @@ if config.IS_DEBUG:
 if "pytest" not in sys.modules:
     logfire.configure(service_name=app.title, send_to_logfire=("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT" not in os.environ))
     logfire.instrument_fastapi(app, capture_headers=True)
+    logfire.instrument_httpx(app)
 
 
 @app.exception_handler(RequestValidationError)

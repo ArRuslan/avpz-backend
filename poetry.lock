@@ -761,6 +761,7 @@ executing = ">=2.0.1"
 opentelemetry-exporter-otlp-proto-http = ">=1.21.0"
 opentelemetry-instrumentation = ">=0.41b0"
 opentelemetry-instrumentation-fastapi = {version = ">=0.42b0", optional = true, markers = "extra == \"fastapi\""}
+opentelemetry-instrumentation-httpx = {version = ">=0.42b0", optional = true, markers = "extra == \"httpx\""}
 opentelemetry-sdk = ">=1.21.0"
 protobuf = ">=4.23.4"
 rich = ">=13.4.2"
@@ -930,6 +931,27 @@ opentelemetry-util-http = "0.49b2"
 
 [package.extras]
 instruments = ["fastapi (>=0.58,<1.0)"]
+
+[[package]]
+name = "opentelemetry-instrumentation-httpx"
+version = "0.49b2"
+description = "OpenTelemetry HTTPX Instrumentation"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "opentelemetry_instrumentation_httpx-0.49b2-py3-none-any.whl", hash = "sha256:08111e6c8d11495dee7ef2243bc2e9acc09c16be8c6f4dd32f939f2b08f30af5"},
+    {file = "opentelemetry_instrumentation_httpx-0.49b2.tar.gz", hash = "sha256:4330f56b0ad382843a1e8fe6179d20c2d2be3ee78e60b9f01ee892b1600de44f"},
+]
+
+[package.dependencies]
+opentelemetry-api = ">=1.12,<2.0"
+opentelemetry-instrumentation = "0.49b2"
+opentelemetry-semantic-conventions = "0.49b2"
+opentelemetry-util-http = "0.49b2"
+wrapt = ">=1.0.0,<2.0.0"
+
+[package.extras]
+instruments = ["httpx (>=0.18.0)"]
 
 [[package]]
 name = "opentelemetry-proto"
@@ -1703,4 +1725,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "871159253aac35108f59b9fcb7de4a613ef1ad2a51e11dd347ebd8af9bd14546"
+content-hash = "4b882054fcf1cbd35765d41be5b6719ffa899ce56df6f9cf7ba10af69c077600"
