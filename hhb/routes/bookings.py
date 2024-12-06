@@ -26,7 +26,12 @@ async def book_room(user: JwtAuthUserDep, data: BookRoomRequest):
     booking = await Booking.create(
         room=room, user=user, check_in=data.check_in, check_out=data.check_out, total_price=price
     )
-    order_id = await PayPal.create(price)
+    try:
+        order_id = await PayPal.create(price)
+    except MultipleErrorsException:
+        await booking.delete()
+        raise
+
     await Payment.create(booking=booking, paypal_order_id=order_id)
 
     return await booking.to_json()
