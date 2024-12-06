@@ -15,10 +15,8 @@ router = APIRouter(prefix="/bookings")
 
 @router.post("", response_model=BookingResponse)
 async def book_room(user: JwtAuthUserDep, data: BookRoomRequest):
-    dates_range = (data.check_in, data.check_out)
-
     room = await room_dep(data.room_id)
-    query = Q(room=room) & (Q(check_in__range=dates_range) | Q(check_out__range=dates_range))
+    query = Q(room=room) & Q(check_in__lte=data.check_out) & Q(check_out__gte=data.check_in)
     if await Booking.exists(query):
         raise MultipleErrorsException("Room is not available for this dates!")
 

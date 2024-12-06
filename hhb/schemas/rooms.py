@@ -1,3 +1,5 @@
+from datetime import date
+
 from pydantic import BaseModel, field_validator
 
 from hhb.models import UserRole
@@ -28,3 +30,5 @@ class SearchRoomsQuery(PaginationQuery):
     type: str | None = None
     price_min: float | None = None
     price_max: float | None = None
+    check_in: date | None = None
+    check_out: date | None = None

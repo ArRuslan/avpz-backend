@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Query
+from tortoise.expressions import Subquery, Q
 
 from ..dependencies import RoomDep
-from ..models import Room
+from ..models import Room, Booking
 from ..schemas.common import PaginationResponse
 from ..schemas.rooms import RoomResponse, SearchRoomsQuery
 
@@ -22,6 +23,19 @@ async def search_rooms(query: SearchRoomsQuery = Query()):
     if "price_max" in db_query_params:
         db_query_params["price__lte"] = db_query_params["price_max"]
         del db_query_params["price_max"]
+    if "check_in" in db_query_params and "check_out" in db_query_params:
+        check_in = db_query_params.pop("check_in")
+        check_out = db_query_params.pop("check_out")
+        if check_in > check_out:  # pragma: no cover
+            check_in, check_out = check_out, check_in
+
+        db_query_params["id__not_in"] = Subquery(
+            Booking.filter(Q(check_in__lte=check_out) & Q(check_out__gte=check_in))\
+                .select_related("room").values_list("room__id", flat=True)
+        )
+    elif "check_in" in db_query_params or "check_out" in db_query_params:
+        db_query_params.pop("check_in", None)
+        db_query_params.pop("check_out", None)
 
     db_query = Room.filter(**db_query_params)
     count = await db_query.count()
