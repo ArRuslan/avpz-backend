@@ -37,6 +37,15 @@ class Booking(Model):
             purpose=JWTPurpose.BOOKING,
         )
 
+    @classmethod
+    async def from_jwt(cls, token: str) -> Booking | None:
+        if (payload := JWT.decode(token, config.JWT_KEY, JWTPurpose.BOOKING)) is None:
+            return
+
+        return await Booking.get_or_none(
+            id=payload["b"], user__id=payload["u"]
+        ).select_related("user", "room", "room__hotel")
+
     async def to_json(self):
         payment = await models.Payment.get_or_none(booking=self)
 
