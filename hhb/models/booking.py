@@ -46,7 +46,19 @@ class Booking(Model):
             id=payload["b"], user__id=payload["u"]
         ).select_related("user", "room", "room__hotel")
 
-    async def to_json(self):
+    async def to_json(self, full: bool = False):
+        if full:
+            return {
+                "id": self.id,
+                "user": self.user.to_json(),
+                "room": await self.room.to_json(),
+                "check_in": self.check_in,
+                "check_out": self.check_out,
+                "total_price": self.total_price,
+                "status": self.status,
+                "created_at": int(self.created_at.timestamp()),
+            }
+
         payment = await models.Payment.get_or_none(booking=self)
 
         return {

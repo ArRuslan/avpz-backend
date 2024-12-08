@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from pytest_httpx import HTTPXMock
 
 from hhb import config
-from hhb.models import Hotel, Room, BookingStatus, Booking
+from hhb.models import Hotel, Room, BookingStatus, Booking, UserRole
 from hhb.schemas.bookings import BookingType
 from hhb.utils.paypal import PayPal
 from tests.conftest import create_token
@@ -335,3 +335,52 @@ async def test_booking_room_available_field(client: AsyncClient, httpx_mock: HTT
     response = await client.get(f"/rooms/{room.id}")
     assert response.status_code == 200, response.json()
     assert not response.json()["available"]
+
+
+@httpx_mock_decorator
+@pytest.mark.asyncio
+async def test_booking_verification(client: AsyncClient, httpx_mock: HTTPXMock):
+    mock_state = PaypalMockState()
+    httpx_mock.add_callback(mock_state.auth_callback, method="POST", url=PayPal.AUTHORIZE)
+    httpx_mock.add_callback(mock_state.order_callback, method="POST", url=PayPal.CHECKOUT)
+    httpx_mock.add_callback(mock_state.capture_callback, method="POST", url=re.compile(r".+/v2/checkout/orders/\d+\.\d+/capture"))
+    httpx_mock.add_callback(mock_state.refund_callback, method="POST", url=re.compile(r".+/v2/payments/captures/\d+\.\d+/refund"))
+
+    token = await create_token()
+    token_admin = await create_token(UserRole.GLOBAL_ADMIN)
+    hotel = await Hotel.create(name="test", address="test address")
+    room = await Room.create(hotel=hotel, type="test", price=123)
+
+    response = await client.post(
+        f"/bookings", headers={"authorization": token}, json={
+            "room_id": room.id,
+            "check_in": str(date.today() + timedelta(days=1)),
+            "check_out": str(date.today() + timedelta(days=7)),
+        },
+    )
+    assert response.status_code == 200, response.json()
+    assert response.json()["payment_id"] is not None
+    assert response.json()["status"] == BookingStatus.PENDING
+    booking_id = response.json()["id"]
+    payment_id = response.json()["payment_id"]
+    mock_state.mark_as_payed(payment_id)
+
+    response = await client.get(f"/bookings/{booking_id}", headers={"authorization": token})
+    assert response.status_code == 200, response.json()
+    assert response.json()["payment_id"] is not None
+    assert response.json()["status"] == BookingStatus.CONFIRMED
+
+    await Booking.filter(id=booking_id).update(check_in=date.today())
+    response = await client.get(f"/bookings/{booking_id}/verification-token", headers={"authorization": token})
+    assert response.status_code == 200, response.json()
+    ver_token = response.json()["token"]
+
+    response = await client.get(f"/admin/bookings/verify?token={ver_token}", headers={"authorization": token_admin})
+    assert response.status_code == 200, response.json()
+    assert response.json()["id"] == booking_id
+    assert response.json()["room"]["id"] == room.id
+
+    response = await client.get(f"/admin/bookings/{booking_id}", headers={"authorization": token_admin})
+    assert response.status_code == 200, response.json()
+    assert response.json()["id"] == booking_id
+    assert response.json()["room"]["id"] == room.id

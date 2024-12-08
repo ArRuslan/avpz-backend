@@ -11,13 +11,14 @@ from hhb import models
 class Room(Model):
     id: int = fields.BigIntField(pk=True)
     hotel: models.Hotel = fields.ForeignKeyField("models.Hotel")
+    hotel_id: int
     type: str = fields.CharField(max_length=64)
     price: float = fields.FloatField()
 
     async def to_json(self) -> dict:
         return {
             "id": self.id,
-            "hotel_id": self.hotel.id,
+            "hotel_id": self.hotel_id if not isinstance(self.hotel, models.Hotel) else self.hotel.id,
             "type": self.type,
             "price": self.price,
             "available": not await models.Booking.exists(
