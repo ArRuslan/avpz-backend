@@ -79,8 +79,6 @@ async def get_booking(booking: BookingDep):
 async def cancel_booking(booking: BookingDep):
     if booking.status == BookingStatus.CANCELLED:
         raise MultipleErrorsException("This booking is already cancelled.")
-    if booking.status == BookingStatus.PENDING:
-        raise MultipleErrorsException("This booking is waiting for payment.")
     if date.today() >= booking.check_in:
         raise MultipleErrorsException("Active booking can not be cancelled.")
 
