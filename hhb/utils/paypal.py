@@ -25,7 +25,9 @@ class PayPal:
                     content="grant_type=client_credentials",
                     auth=(config.PAYPAL_ID, config.PAYPAL_SECRET),
                 )
+
                 j = resp.json()
+                logfire.debug(f"Paypal token response", code=resp.status_code, body=j)
 
                 if "access_token" not in j or "expires_in" not in j:
                     raise MultipleErrorsException(
@@ -54,6 +56,8 @@ class PayPal:
             )
 
             j_resp = resp.json()
+            logfire.debug(f"Paypal create order response", code=resp.status_code, body=j_resp)
+
             if "id" not in j_resp:
                 logfire.error(
                     f"Failed to create PayPal order!", paypal_code=resp.status_code, paypal_resp=j_resp,
@@ -74,6 +78,8 @@ class PayPal:
             )
 
             j_resp = resp.json()
+            logfire.debug(f"Paypal capture response", code=resp.status_code, body=j_resp)
+
             if resp.status_code >= 400 or j_resp["status"] != "COMPLETED":
                 logfire.error(
                     f"Failed to capture PayPal!", paypal_code=resp.status_code, paypal_resp=j_resp,
@@ -100,6 +106,7 @@ class PayPal:
             )
 
             j_resp = resp.json()
+            logfire.debug(f"Paypal refund response", code=resp.status_code, body=j_resp)
 
             if resp.status_code == 400 and j_resp.get("details") and \
                     j_resp["details"][0]["issue"] == "CAPTURE_FULLY_REFUNDED":
