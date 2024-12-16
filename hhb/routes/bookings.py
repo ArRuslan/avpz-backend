@@ -83,10 +83,11 @@ async def cancel_booking(booking: BookingDep):
         raise MultipleErrorsException("Active booking can not be cancelled.")
 
     payment = await Payment.get_or_none(booking=booking)
-    if payment.paypal_capture_id is None:  # pragma: no cover
-        raise MultipleErrorsException("Payment does not have capture id.")
-    if not await PayPal.refund(payment.paypal_capture_id, booking.total_price):  # pragma: no cover
-        raise MultipleErrorsException("Failed to request refund for this booking.")
+    if booking.status != BookingStatus.PENDING:
+        if payment.paypal_capture_id is None:  # pragma: no cover
+            raise MultipleErrorsException("Payment does not have capture id.")
+        if not await PayPal.refund(payment.paypal_capture_id, booking.total_price):  # pragma: no cover
+            raise MultipleErrorsException("Failed to request refund for this booking.")
 
     booking.status = BookingStatus.CANCELLED
     await booking.save(update_fields=["status"])

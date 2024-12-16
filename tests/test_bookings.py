@@ -163,7 +163,7 @@ async def test_booking_cancel_pending(client: AsyncClient, httpx_mock: HTTPXMock
     booking_id = response.json()["id"]
 
     response = await client.post(f"/bookings/{booking_id}/cancel", headers={"authorization": token})
-    assert response.status_code == 400, response.json()
+    assert response.status_code == 204, response.json()
 
 
 @httpx_mock_decorator
