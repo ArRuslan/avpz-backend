@@ -1,5 +1,6 @@
 from time import time
 
+import logfire
 from httpx import AsyncClient
 
 from .multiple_errors_exception import MultipleErrorsException
@@ -54,6 +55,7 @@ class PayPal:
 
             j_resp = resp.json()
             if "id" not in j_resp:
+                logfire.error(f"Failed to create PayPal order: {j_resp}")
                 raise MultipleErrorsException(
                     "Failed to create PayPal order!" if config.IS_DEBUG else "An error occurred with PayPal"
                 )
@@ -71,6 +73,7 @@ class PayPal:
 
             j_resp = resp.json()
             if resp.status_code >= 400 or j_resp["status"] != "COMPLETED":
+                logfire.error(f"Failed to capture PayPal: {j_resp}")
                 return
 
             try:
@@ -91,5 +94,8 @@ class PayPal:
                     },
                 },
             )
+
+            if resp.status_code != 200 or resp.json()["status"] != "COMPLETED":
+                logfire.error(f"Failed to request PayPal refund: {resp.json()}")
 
             return resp.status_code == 200 and resp.json()["status"] == "COMPLETED"
