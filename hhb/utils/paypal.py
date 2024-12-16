@@ -55,7 +55,9 @@ class PayPal:
 
             j_resp = resp.json()
             if "id" not in j_resp:
-                logfire.error(f"Failed to create PayPal order: {j_resp}")
+                logfire.error(
+                    f"Failed to create PayPal order!", paypal_code=resp.status_code, paypal_resp=j_resp,
+                )
                 raise MultipleErrorsException(
                     "Failed to create PayPal order!" if config.IS_DEBUG else "An error occurred with PayPal"
                 )
@@ -73,7 +75,9 @@ class PayPal:
 
             j_resp = resp.json()
             if resp.status_code >= 400 or j_resp["status"] != "COMPLETED":
-                logfire.error(f"Failed to capture PayPal: {j_resp}")
+                logfire.error(
+                    f"Failed to capture PayPal!", paypal_code=resp.status_code, paypal_resp=j_resp,
+                )
                 return
 
             try:
@@ -95,7 +99,16 @@ class PayPal:
                 },
             )
 
-            if resp.status_code != 200 or resp.json()["status"] != "COMPLETED":
-                logfire.error(f"Failed to request PayPal refund: {resp.json()}")
+            j_resp = resp.json()
 
-            return resp.status_code == 200 and resp.json()["status"] == "COMPLETED"
+            if resp.status_code == 400 and j_resp.get("details") and \
+                    j_resp["details"][0]["issue"] == "CAPTURE_FULLY_REFUNDED":
+                return True
+
+            success = resp.status_code == 200 and resp.json()["status"] == "COMPLETED"
+            if not success:
+                logfire.error(
+                    f"Failed to request PayPal refund!", paypal_code=resp.status_code, paypal_resp=resp.json(),
+                )
+
+            return success
