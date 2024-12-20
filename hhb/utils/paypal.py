@@ -112,7 +112,7 @@ class PayPal:
                     j_resp["details"][0]["issue"] == "CAPTURE_FULLY_REFUNDED":
                 return True
 
-            success = resp.status_code == 200 and resp.json()["status"] == "COMPLETED"
+            success = resp.status_code < 400 and resp.json()["status"] == "COMPLETED"
             if not success:
                 logfire.error(
                     f"Failed to request PayPal refund!", paypal_code=resp.status_code, paypal_resp=resp.json(),
