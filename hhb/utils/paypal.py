@@ -108,7 +108,7 @@ class PayPal:
             j_resp = resp.json()
             logfire.debug(f"Paypal refund response", code=resp.status_code, body=j_resp)
 
-            if resp.status_code == 400 and j_resp.get("details") and \
+            if resp.status_code >= 400 and j_resp.get("details") and \
                     j_resp["details"][0]["issue"] == "CAPTURE_FULLY_REFUNDED":
                 return True
 
